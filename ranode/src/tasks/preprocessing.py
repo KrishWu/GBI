@@ -88,6 +88,7 @@ class ProcessBkg(BaseTask):
         output_combined = process_gw_backgrounds(num_events=num_events)
 
         # Split into Signal Region (SR) and Control Region (CR) for GW data
+        # Use our custom GW splitting instead of the mass-based separate_SB_SR
         SR_bkg, CR_bkg = gw_background_split(
             output_combined,
             resample_seed=42,
@@ -182,13 +183,14 @@ class PreprocessingFold(
         for key in pre_parameters.keys():
             pre_parameters[key] = np.array(pre_parameters[key])
 
-        # ----------------------- mass hist in SR -----------------------
-        from config.configs import SR_MIN, SR_MAX
-
-        mass = SR_bkg[SR_bkg[:, -1] == 0, 0]
-        bins = np.linspace(SR_MIN, SR_MAX, 50)
-        hist_back = np.histogram(mass, bins=bins, density=True)
-        # save mass histogram and bins
+        # ----------------------- amplitude hist in SR for GW data -----------------------
+        # For GW data, use peak amplitude (first column) instead of mass
+        amplitude = SR_bkg[SR_bkg[:, -1] == 0, 0]
+        # Use amplitude range instead of mass range for GW data
+        amplitude_min, amplitude_max = amplitude.min(), amplitude.max()
+        bins = np.linspace(amplitude_min, amplitude_max, 50)
+        hist_back = np.histogram(amplitude, bins=bins, density=True)
+        # save amplitude histogram and bins (keeping same name for compatibility)
         self.output()["SR_mass_hist"].parent.touch()
         with open(self.output()["SR_mass_hist"].path, "w") as f:
             json.dump({"hist": hist_back[0], "bins": hist_back[1]}, f, cls=NumpyEncoder)
