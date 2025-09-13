@@ -21,9 +21,9 @@ from src.utils.law import (
 
 class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
     """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
+    Will reprocess the GW signal such that they have shape (N, 6) where N is the number of events.
     The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=1)
+    (peak_amplitude, h_peak_time, time_delay, h_variance, l_variance, label=1)
     """
 
     def output(self):
@@ -33,53 +33,32 @@ class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
+        # Use gravitational wave signal data instead of mass-based data
+        from src.data_prep.gw_processing import process_gw_signals
 
+        # Generate GW signal events for train/val/test
+        # Scale number of events based on signal ratio
+        base_events = 1000
         if self.use_full_stats:
-            data_path = f"{data_dir}/full_stats_signal_features_W_qq.h5"
-        else:
-            data_path = (
-                f"{data_dir}/lumi_matched_train_val_test_split_signal_features_W_qq.h5"
-            )
-
-        from src.data_prep.signal_processing import process_signals
-
+            base_events = 3000
+            
+        # Adjust event count based on signal strength ratio
+        signal_events = int(base_events * max(0.1, self.s_ratio))  # At least 10% of base
+        
+        print(f"Generating {signal_events} GW signal events with s_ratio={self.s_ratio}")
+        
+        # Generate signal events (combining what used to be train/val/test)
+        sig_combined = process_gw_signals(num_events=signal_events)
+        
         self.output()["signals"].parent.touch()
-        train_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_train",
-        )
-        val_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_val",
-        )
-        test_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_test",
-        )
-
-        self.output()["signals"].parent.touch()
-        sig_combined = np.concatenate([train_output, val_output, test_output], axis=0)
         np.save(self.output()["signals"].path, sig_combined)
 
 
 class ProcessBkg(BaseTask):
     """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
+    Will reprocess the GW background such that they have shape (N, 6) where N is the number of events.
     The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=0)
+    (peak_amplitude, h_peak_time, time_delay, h_variance, l_variance, label=0)
 
     Bkg events will first be splitted into SR and CR
     The overall CR will be used to calculate the normalizing parameters, then it will be applied on CR events
@@ -96,27 +75,20 @@ class ProcessBkg(BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
-
-        data_path_qcd = f"{data_dir}/events_anomalydetection_v2.features.h5"
-        data_path_extra_qcd = (
-            f"{data_dir}/events_anomalydetection_qcd_extra_inneronly_features.h5"
-        )
-
-        from src.data_prep.bkg_processing import process_bkgs
-
-        output_qcd = process_bkgs(data_path_qcd)
-
+        # Use gravitational wave data instead of mass-based data
+        from src.data_prep.gw_processing import process_gw_backgrounds, gw_background_split
+        
+        # Generate GW background events
         if self.use_full_stats:
-            output_extra_qcd = process_bkgs(data_path_extra_qcd)
-            output_combined = np.concatenate([output_qcd, output_extra_qcd], axis=0)
+            num_events = 20000  # More events for full stats
         else:
-            output_combined = output_qcd
+            num_events = 10000  # Standard number of events
+            
+        print(f"Generating {num_events} GW background events...")
+        output_combined = process_gw_backgrounds(num_events=num_events)
 
-        # split into trainval and test set
-        from src.data_prep.data_prep import background_split
-
-        SR_bkg, CR_bkg = background_split(
+        # Split into Signal Region (SR) and Control Region (CR) for GW data
+        SR_bkg, CR_bkg = gw_background_split(
             output_combined,
             resample_seed=42,
         )
