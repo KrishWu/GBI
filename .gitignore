@@ -8,3 +8,6 @@ private/
 *.pyc
 ranode/.config
 ranode/.law
+gbi_ranode_env
+in
+out

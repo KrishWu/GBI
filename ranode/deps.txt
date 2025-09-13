@@ -1,0 +1,95 @@
+print task dependencies with max_depth 5
+
+0 > FittingScanResults(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, train_num_sig_templates=1, w_min=1e-05, w_max=0.1, scan_number=5, device=cpu)
+│
+└──1 > ScanRANODE(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, train_num_sig_templates=1, w_min=1e-05, w_max=0.1, scan_number=5, device=cpu)
+   │
+   ├──2 > ScanRANODEFixedSeed(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, train_num_sig_templates=1, w_min=1e-05, w_max=0.1, scan_number=5)
+   │  │
+   │  ├──3 > RNodeTemplate(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0, batchsize=2048, epoches=50, w_value=1e-05, early_stopping_patience=10)
+   │  │  │
+   │  │  ├──4 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │  │  │
+   │  │  │  ├──5 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │  │  │  │
+   │  │  │  └──5 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │  │  │
+   │  │  └──4 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0)
+   │  │     │
+   │  │     ├──5 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cuda:0, batchsize=2048, epochs=20, early_stopping_patience=20)
+   │  │     │
+   │  │     └──5 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │
+   │  ├──3 > RNodeTemplate(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0, batchsize=2048, epoches=50, w_value=0.0001, early_stopping_patience=10)
+   │  │  │
+   │  │  ├──4 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │  │  │
+   │  │  │  ├──5 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │  │  │  │
+   │  │  │  └──5 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │  │  │
+   │  │  └──4 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0)
+   │  │     │
+   │  │     ├──5 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cuda:0, batchsize=2048, epochs=20, early_stopping_patience=20)
+   │  │     │
+   │  │     └──5 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │
+   │  ├──3 > RNodeTemplate(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0, batchsize=2048, epoches=50, w_value=0.001, early_stopping_patience=10)
+   │  │  │
+   │  │  ├──4 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │  │  │
+   │  │  │  ├──5 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │  │  │  │
+   │  │  │  └──5 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │  │  │
+   │  │  └──4 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0)
+   │  │     │
+   │  │     ├──5 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cuda:0, batchsize=2048, epochs=20, early_stopping_patience=20)
+   │  │     │
+   │  │     └──5 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │
+   │  ├──3 > RNodeTemplate(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0, batchsize=2048, epoches=50, w_value=0.01, early_stopping_patience=10)
+   │  │  │
+   │  │  ├──4 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │  │  │
+   │  │  │  ├──5 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │  │  │  │
+   │  │  │  └──5 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │  │  │
+   │  │  └──4 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0)
+   │  │     │
+   │  │     ├──5 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cuda:0, batchsize=2048, epochs=20, early_stopping_patience=20)
+   │  │     │
+   │  │     └──5 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │
+   │  └──3 > RNodeTemplate(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, train_random_seed=0, fold_split_seed=0, fold_split_num=5, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0, batchsize=2048, epoches=50, w_value=0.1, early_stopping_patience=10)
+   │     │
+   │     ├──4 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │     │  │
+   │     │  ├──5 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │     │  │
+   │     │  └──5 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │     │
+   │     └──4 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cuda:0)
+   │        │
+   │        ├──5 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cuda:0, batchsize=2048, epochs=20, early_stopping_patience=20)
+   │        │
+   │        └──5 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │
+   ├──2 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+   │  │
+   │  ├──3 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+   │  │
+   │  └──3 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+   │
+   └──2 > PredictBkgProb(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5, num_bkg_templates=1, use_perfect_bkg_model=False, use_bkg_model_gen_data=False, device=cpu)
+      │
+      ├──3 > BkgTemplateTraining(version=simplified_test_2, use_full_stats=False, train_random_seed=0, device=cpu, batchsize=2048, epochs=20, early_stopping_patience=20)
+      │  │
+      │  └──4 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
+      │
+      └──3 > PreprocessingFold(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11, fold_split_seed=0, fold_split_num=5)
+         │
+         ├──4 > ProcessSignal(version=simplified_test_2, use_full_stats=False, mx=100, my=500, ensemble=1, s_ratio_index=11)
+         │
+         └──4 > ProcessBkg(version=simplified_test_2, use_full_stats=False)
