@@ -21,9 +21,9 @@ from src.utils.law import (
 
 class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
     """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
+    Will reprocess the GW signal such that they have shape (N, 6) where N is the number of events.
     The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=1)
+    (time, h, l, h+l, h-l, label=1)
     """
 
     def output(self):
@@ -33,53 +33,17 @@ class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
+        from src.data_prep.gw_processing import process_gw_signals
 
-        if self.use_full_stats:
-            data_path = f"{data_dir}/full_stats_signal_features_W_qq.h5"
-        else:
-            data_path = (
-                f"{data_dir}/lumi_matched_train_val_test_split_signal_features_W_qq.h5"
-            )
-
-        from src.data_prep.signal_processing import process_signals
-
-        self.output()["signals"].parent.touch()
-        train_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_train",
-        )
-        val_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_val",
-        )
-        test_output = process_signals(
-            data_path,
-            self.mx,
-            self.my,
-            self.s_ratio,
-            self.ensemble,
-            type="x_test",
-        )
-
-        self.output()["signals"].parent.touch()
-        sig_combined = np.concatenate([train_output, val_output, test_output], axis=0)
-        np.save(self.output()["signals"].path, sig_combined)
+        sig = process_gw_signals()
+        np.save(self.output()["signals"].path, sig)
 
 
 class ProcessBkg(BaseTask):
     """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
+    Will reprocess the GW background such that they have shape (N, 6) where N is the number of events.
     The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=0)
+    (time, h, l, h+l, h-l, label=0)
 
     Bkg events will first be splitted into SR and CR
     The overall CR will be used to calculate the normalizing parameters, then it will be applied on CR events
@@ -96,28 +60,15 @@ class ProcessBkg(BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
+        from src.data_prep.gw_processing import process_gw_backgrounds
 
-        data_path_qcd = f"{data_dir}/events_anomalydetection_v2.features.h5"
-        data_path_extra_qcd = (
-            f"{data_dir}/events_anomalydetection_qcd_extra_inneronly_features.h5"
-        )
-
-        from src.data_prep.bkg_processing import process_bkgs
-
-        output_qcd = process_bkgs(data_path_qcd)
-
-        if self.use_full_stats:
-            output_extra_qcd = process_bkgs(data_path_extra_qcd)
-            output_combined = np.concatenate([output_qcd, output_extra_qcd], axis=0)
-        else:
-            output_combined = output_qcd
+        bg = process_gw_backgrounds()
 
         # split into trainval and test set
-        from src.data_prep.data_prep import background_split
+        from src.data_prep.gw_processing import gw_background_split
 
-        SR_bkg, CR_bkg = background_split(
-            output_combined,
+        SR_bkg, CR_bkg = gw_background_split(
+            bg,
             resample_seed=42,
         )
 
@@ -187,7 +138,7 @@ class PreprocessingFold(
                 "data_SR_data_trainval_model_B.npy"
             ),
             "SR_data_test_model_B": self.local_target("data_SR_data_test_model_B.npy"),
-            "SR_mass_hist": self.local_target("SR_mass_hist.json"),
+            "SR_time_hist": self.local_target("SR_time_hist.json"),
         }
 
     @law.decorator.safe_output
@@ -210,15 +161,13 @@ class PreprocessingFold(
         for key in pre_parameters.keys():
             pre_parameters[key] = np.array(pre_parameters[key])
 
-        # ----------------------- mass hist in SR -----------------------
-        from config.configs import SR_MIN, SR_MAX
-
-        mass = SR_bkg[SR_bkg[:, -1] == 0, 0]
-        bins = np.linspace(SR_MIN, SR_MAX, 50)
-        hist_back = np.histogram(mass, bins=bins, density=True)
-        # save mass histogram and bins
-        self.output()["SR_mass_hist"].parent.touch()
-        with open(self.output()["SR_mass_hist"].path, "w") as f:
+        # ----------------------- time hist in SR -----------------------
+        time = SR_bkg[SR_bkg[:, -1] == 0, 0]
+        bins = np.linspace(np.min(time), np.max(time), 50)
+        hist_back = np.histogram(time, bins=bins, density=True)
+        # save time histogram and bins
+        self.output()["SR_time_hist"].parent.touch()
+        with open(self.output()["SR_time_hist"].path, "w") as f:
             json.dump({"hist": hist_back[0], "bins": hist_back[1]}, f, cls=NumpyEncoder)
 
         # ----------------------- make SR data -----------------------
