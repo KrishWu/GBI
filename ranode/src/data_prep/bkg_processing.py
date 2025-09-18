@@ -5,10 +5,37 @@ from src.data_prep.utils import get_dijetmass_pxyz
 TeV = 1000.0
 
 def process_bkgs(input_path):
-    """
-    Will reprocess the bkgs such that they have shape (N, 6) where N is the number of events.
-    The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=0)
+    """Process background events into standard R-Anode feature format.
+    
+    This function transforms raw background event data into the standardized
+    feature representation used throughout the R-Anode analysis pipeline.
+    It computes dijet masses, sorts subjet features, and formats the data
+    according to the LHCO R&D dataset specifications used in the R-Anode paper.
+    
+    Parameters
+    ----------
+    input_path : str
+        Path to input HDF5 file containing raw background event data
+        
+    Returns
+    -------
+    numpy.ndarray, shape (n_events, 6)
+        Processed background events with columns:
+        [mjj, mj1, delta_mj, tau21j1, tau21j2, label]
+        where:
+        - mjj: Dijet invariant mass in TeV
+        - mj1: Smaller subjet mass in TeV  
+        - delta_mj: Mass difference (mj2 - mj1) in TeV
+        - tau21j1: N-subjettiness ratio τ21 for smaller mass jet
+        - tau21j2: N-subjettiness ratio τ21 for larger mass jet
+        - label: Background label (always 0)
+        
+    Notes
+    -----
+    Features correspond to the baseline features defined in the LHCO R&D
+    dataset, matching the setup described in Section III.A of the R-Anode paper.
+    Subjet masses and τ21 ratios are sorted by subjet mass to ensure
+    consistent feature ordering.
     """
 
     data_all_df = pd.read_hdf(input_path)
