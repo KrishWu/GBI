@@ -8,12 +8,56 @@ from src.utils.utils import NumpyEncoder
 
 
 def separate_SB_SR(data):
+    """Separate data into signal region (SR) and sideband (SB) regions.
+    
+    This function implements the fundamental data separation used in R-Anode,
+    splitting events based on the invariant mass into signal region and
+    sideband regions as described in Section III.A of the R-Anode paper.
+    
+    Parameters
+    ----------
+    data : array-like, shape (n_events, n_features)
+        Input data where first column contains invariant mass values
+        
+    Returns
+    -------
+    tuple of arrays
+        (SR_data, SB_data) - events in signal region and sideband regions
+        
+    Notes
+    -----
+    Uses SR_MIN and SR_MAX from config to define the signal region boundaries.
+    The signal region is typically defined as m ∈ [3.3, 3.7] TeV for W' search.
+    """
     innermask = (data[:, 0] > SR_MIN) & (data[:, 0] < SR_MAX)
     outermask = ~innermask
     return data[innermask], data[outermask]
 
 
 def background_split(background, resample_seed=42):
+    """Split background data into signal region and control region.
+    
+    This function prepares the background data for R-Anode training by
+    shuffling the data with a fixed seed and then separating it into
+    signal region and control region components for background model learning.
+    
+    Parameters
+    ----------
+    background : array-like
+        Background event data to be split
+    resample_seed : int, default=42
+        Random seed for reproducible shuffling
+        
+    Returns
+    -------
+    tuple of arrays
+        (SR_bkg, CR_bkg) - background events in signal and control regions
+        
+    Notes
+    -----
+    The control region events are used to learn the background model
+    p_bg(x|m) as described in Section II of the R-Anode paper.
+    """
 
     # shuffle data
     background = shuffle(background, random_state=resample_seed)
@@ -55,6 +99,36 @@ def background_split(background, resample_seed=42):
 
 
 def shuffle_trainval(input, output, resample_seed=42):
+    """Shuffle and split data into training and validation sets for R-Anode.
+    
+    This function performs the data splitting procedure for R-Anode training,
+    creating consistent train/validation splits for both signal and background
+    models while maintaining the same random indexing across all datasets.
+    
+    Parameters
+    ----------
+    input : dict
+        Dictionary containing input file paths for:
+        - SR_data_trainval_model_S: Signal region data for signal model
+        - SR_data_trainval_model_B: Signal region data for background model  
+        - SR_mass_hist: Mass histogram for the signal region
+        - log_B_trainval: Background log-probabilities
+    output : dict
+        Dictionary containing output file paths for train/val splits
+    resample_seed : int, default=42
+        Random seed for reproducible train/validation splitting
+        
+    Returns
+    -------
+    None
+        Saves split datasets to files specified in output dictionary
+        
+    Notes
+    -----
+    Uses 2:1 train:validation split ratio. Maintains consistent random
+    indexing across signal model data, background model data, and 
+    background probabilities to ensure proper alignment.
+    """
 
     # first load data
 

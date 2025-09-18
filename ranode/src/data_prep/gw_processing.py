@@ -7,19 +7,30 @@ from .gen_data import gen_sig, gen_bg
 
 
 def process_gw_signals():
-    """
-    Generate GW signal events and convert to format compatible with ML pipeline.
+    """Generate and process gravitational wave signal events for R-Anode analysis.
     
-    Current ML expects: (mjj, mj1, delta_mj, tau21j1, tau21j2, label=1)
-    GW data provides: (time, H_strain, L_strain)
+    This function adapts gravitational wave time-series data to be compatible
+    with the R-Anode ML pipeline by extracting physics-motivated features
+    from the GW strain data that can serve as analogs to particle physics
+    observables.
     
-    We'll create features from time-series that capture important GW characteristics:
-    - Peak strain amplitude (analogous to mjj)
-    - H detector peak time (analogous to mj1) 
-    - Time difference between H and L peaks (analogous to delta_mj)
-    - H strain variance (analogous to tau21j1)
-    - L strain variance (analogous to tau21j2)
-    - label = 1 for signals
+    Returns
+    -------
+    numpy.ndarray, shape (n_events, 6)
+        Processed GW signal events with columns analogous to particle physics:
+        - Peak strain amplitude (analogous to dijet mass mjj)
+        - H detector peak time (analogous to subjet mass mj1)
+        - Time difference H-L peaks (analogous to mass difference delta_mj)
+        - H strain variance (analogous to τ21 ratio for jet 1)
+        - L strain variance (analogous to τ21 ratio for jet 2)
+        - label = 1 (signal events)
+        
+    Notes
+    -----
+    This demonstrates the adaptability of R-Anode methodology beyond
+    particle physics to other domains with signal/background discrimination.
+    The feature mapping preserves the essential structure needed for the
+    anomaly detection framework.
     """
     gw_data = gen_sig()
     gw_data= np.full((gw_data.shape[0], 1), 1)
@@ -28,10 +39,22 @@ def process_gw_signals():
 
 
 def process_gw_backgrounds():
-    """
-    Generate GW background (noise) events and convert to format compatible with ML pipeline.
+    """Generate and process gravitational wave background events for R-Anode.
     
-    Same feature extraction as signals but with label=0 for background.
+    This function creates background (noise-only) events from the GW detector
+    simulation and formats them for compatibility with the R-Anode analysis
+    pipeline using the same feature extraction as signal events.
+    
+    Returns
+    -------
+    numpy.ndarray, shape (n_events, 6)
+        Processed GW background events with same feature structure as signals
+        but with label = 0 to indicate background events
+        
+    Notes
+    -----
+    Background events are essential for learning the background density
+    p_bg(x,m) in the R-Anode framework, adapted here for GW analysis.
     """
     gw_data = gen_bg()
     gw_data= np.full((gw_data.shape[0], 1), 0)
@@ -40,20 +63,32 @@ def process_gw_backgrounds():
 
 
 def gw_background_split(gw_bkg_data, resample_seed=42):
-    """
-    Split GW background data into Signal Region (SR) and Control Region (CR).
+    """Split GW background data into signal and control regions.
     
-    For GW analysis:
-    - SR: Events with higher peak amplitudes (potential signal contamination)
-    - CR: Events with lower peak amplitudes (pure background for training)
+    This function adapts the signal region / control region splitting concept
+    from particle physics to gravitational wave analysis, using strain amplitude
+    thresholds to define regions for R-Anode background model training.
     
-    Args:
-        gw_bkg_data: Array of shape (N, 6) with GW background events
-        resample_seed: Random seed for reproducible splitting
+    Parameters
+    ----------
+    gw_bkg_data : array-like, shape (n_events, 6)
+        GW background events to split
+    resample_seed : int, default=42
+        Random seed for reproducible shuffling
         
-    Returns:
-        SR_bkg: Background events in signal region
-        CR_bkg: Background events in control region  
+    Returns
+    -------
+    tuple
+        (SR_bkg, CR_bkg) where:
+        - SR_bkg: Background events in signal region (higher amplitudes)
+        - CR_bkg: Background events in control region (lower amplitudes)
+        
+    Notes
+    -----
+    The control region events are used to train the background model
+    p_bg(x|m) in the R-Anode framework, adapted for GW strain features.
+    The signal region split mimics the mass window selection used in
+    particle physics searches.
     """
     np.random.shuffle(gw_bkg_data, random_state=resample_seed)
     
@@ -61,7 +96,7 @@ def gw_background_split(gw_bkg_data, resample_seed=42):
     time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Top 20% goes to outer_mas
     time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Bottom 20% goes to outer_mask
     
-    inner_mask = time_min < gw_bkg_data[:, 0] & gw_bkg_data[:, 0] < time_max
+    inner_mask = (time_min < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < time_max)
     outer_mask = ~inner_mask
     
     inner_bkg = gw_bkg_data[inner_mask]
