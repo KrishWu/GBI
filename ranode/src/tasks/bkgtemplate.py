@@ -25,6 +25,34 @@ from src.tasks.preprocessing import PreprocessingFold, ProcessBkg
 
 
 class BkgTemplateTraining(TemplateRandomMixin, BaseTask):
+    """Task for training background model templates in R-Anode.
+    
+    This task implements the background model training described in Section II
+    of the R-Anode paper. It trains normalizing flow models to learn the
+    background density p_bg(x|m) from control region (sideband) data.
+    
+    The background model is crucial for R-Anode as it provides the fixed
+    density estimation that is held constant while training the signal model.
+    Multiple templates are trained with different random seeds for ensemble
+    uncertainty estimation.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda'
+        Device for model training ('cuda' or 'cpu')
+    batchsize : luigi.IntParameter, default=2048
+        Batch size for training
+    epochs : luigi.IntParameter, default=20
+        Maximum number of training epochs
+    early_stopping_patience : luigi.IntParameter, default=20
+        Patience for early stopping based on validation loss
+        
+    Notes
+    -----
+    Uses MAF (Masked Autoregressive Flow) architecture for density estimation.
+    The model is trained on control region data to learn p_bg(x|m) without
+    signal contamination, following the R-Anode methodology.
+    """
     device = luigi.Parameter(default="cuda")
     batchsize = luigi.IntParameter(default=2048)
     epochs = luigi.IntParameter(default=20)
@@ -134,6 +162,29 @@ class BkgTemplateChecking(
     BkgTemplateUncertaintyMixin,
     BaseTask,
 ):
+    """Task for validating trained background model templates.
+    
+    This task generates synthetic background events using the trained
+    background models and compares them with real control region data
+    to validate the quality of the background density estimation.
+    
+    The validation is essential for ensuring that the background models
+    learned from sidebands accurately represent the true background
+    distribution, which is critical for R-Anode performance.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda'
+        Device for model evaluation
+    num_CR_samples : luigi.IntParameter, default=100000
+        Number of control region samples to generate for comparison
+        
+    Notes
+    -----
+    Creates diagnostic plots comparing generated vs. real background events
+    across all feature dimensions. Helps identify potential issues with
+    background model training or data preprocessing.
+    """
 
     device = luigi.Parameter(default="cuda")
     num_CR_samples = luigi.IntParameter(default=100000)
@@ -243,6 +294,34 @@ class BkgTemplateChecking(
 
 # --------------------------------- Ideal Bkg Model ---------------------------------
 class PerfectBkgTemplateTraining(TemplateRandomMixin, BaseTask):
+    """Task for training 'perfect' background models using signal region data.
+    
+    This task implements an idealized background model training scenario
+    where the background model is trained directly on pure background
+    events from the signal region. This serves as a performance upper bound
+    for comparison with the standard R-Anode approach that uses sideband data.
+    
+    Used for systematic studies to understand the performance impact of
+    background model training location (signal region vs. control region)
+    as discussed in the R-Anode paper methodology comparisons.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda'
+        Device for model training
+    batchsize : luigi.IntParameter, default=2048
+        Batch size for training
+    epochs : luigi.IntParameter, default=200
+        Maximum number of training epochs (higher than standard due to larger dataset)
+    early_stopping_patience : luigi.IntParameter, default=20
+        Patience for early stopping
+        
+    Notes
+    -----
+    This represents an idealized scenario not available in real analysis,
+    but useful for understanding the theoretical performance limits of
+    R-Anode when background modeling is perfect.
+    """
     device = luigi.Parameter(default="cuda")
     batchsize = luigi.IntParameter(default=2048)
     epochs = luigi.IntParameter(default=200)
@@ -370,6 +449,29 @@ class PredictBkgProb(
     ProcessMixin,
     BaseTask,
 ):
+    """Task for computing background probabilities using trained models.
+    
+    This task evaluates trained background models on signal region data
+    to compute the background probabilities p_bg(x,m) needed for R-Anode
+    likelihood calculations. Supports ensemble averaging over multiple
+    background model templates for uncertainty estimation.
+    
+    The computed background probabilities are combined with signal model
+    probabilities in the R-Anode likelihood ratio calculation for anomaly
+    detection and signal strength estimation.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda'
+        Device for model evaluation
+        
+    Notes
+    -----
+    Handles both standard background models (trained on sidebands) and
+    perfect background models (trained on signal region) depending on
+    configuration. Implements ensemble averaging over multiple models
+    for robust uncertainty estimation as described in the R-Anode paper.
+    """
 
     device = luigi.Parameter(default="cuda")
 

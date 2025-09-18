@@ -33,6 +33,30 @@ from src.tasks.rnodetemplate import (
 
 
 class ProcessAllSignals(BaseTask):
+    """Task for processing signal events for R-Anode analysis.
+    
+    This task handles the processing of signal events from the parametric
+    dataset into the standardized format used by R-Anode. It extracts
+    events for specific mass points (mx, my) and prepares them for use
+    in the analysis pipeline.
+    
+    The processed signals are used for signal injection studies and
+    performance evaluation of the R-Anode methodology across different
+    signal hypotheses.
+    
+    Attributes
+    ----------
+    mx : luigi.IntParameter, default=100
+        Mass of X particle in GeV
+    my : luigi.IntParameter, default=500
+        Mass of Y particle in GeV
+        
+    Notes
+    -----
+    Processes signals from the extended parametric dataset for the
+    specified mass point configuration. Essential for creating the
+    signal samples used in R-Anode sensitivity studies.
+    """
 
     mx = luigi.IntParameter(default=100)
     my = luigi.IntParameter(default=500)

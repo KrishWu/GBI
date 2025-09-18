@@ -23,6 +23,53 @@ def train_model_S(
     train_random_seed=42,
     device="cuda",
 ):
+    """Train the signal model for R-Anode analysis.
+    
+    This function implements the signal model training procedure described
+    in Section II of the R-Anode paper. It trains a normalizing flow to
+    learn the signal density p_sig(x,m) by fitting to the residual component
+    after subtracting the fixed background model from the data.
+    
+    Parameters
+    ----------
+    input_dir : dict
+        Dictionary containing input data paths:
+        - data_trainval_SR_model_B: Signal region background model data
+        - data_trainval_SR_model_S: Signal region signal model data  
+        - log_B_trainval: Background model log-probabilities
+    output_dir : dict
+        Dictionary containing output paths for trained models
+    s_ratio : float
+        Signal-to-background ratio for this training
+    w_value : float
+        Signal fraction value for this training point
+    batch_size : int
+        Batch size for training
+    epoches : int, default=200
+        Number of training epochs
+    early_stopping_patience : int, default=10
+        Patience for early stopping
+    train_random_seed : int, default=42
+        Random seed for reproducible training
+    device : str, default='cuda'
+        Device for training ('cuda' or 'cpu')
+        
+    Returns
+    -------
+    None
+        Trained models are saved to output_dir paths
+        
+    Notes
+    -----
+    Implements the key R-Anode innovation of fitting directly to the signal
+    component while holding the background model fixed. This differs from
+    the original ANODE approach which fit to the full data density.
+    
+    The training uses the likelihood from Equation (3) in the paper:
+    L = -⟨log p_data(x,m)⟩ where p_data = w*p_sig + (1-w)*p_bg
+    
+    Multiple models are trained for ensemble uncertainty estimation.
+    """
     # fixing random seed
     torch.manual_seed(train_random_seed)
 
@@ -211,6 +258,36 @@ def train_model_S(
 
 
 def pred_model_S(model_dir, data_train_SR_S, device="cuda"):
+    """Make predictions using a trained R-Anode signal model.
+    
+    This function loads a trained signal model and evaluates it on test data
+    to compute signal probabilities p_sig(x,m) for use in R-Anode anomaly
+    detection. The probabilities are used in the likelihood ratio calculation.
+    
+    Parameters
+    ----------
+    model_dir : str or Path
+        Path to the saved signal model state dictionary
+    data_train_SR_S : numpy.ndarray
+        Test data for signal model evaluation, shape (n_events, n_features)
+    device : str, default='cuda'
+        Device for model evaluation
+        
+    Returns
+    -------
+    numpy.ndarray
+        Signal model probabilities for each event, shape (n_events,)
+        
+    Notes
+    -----
+    Loads the RQS normalizing flow model trained for signal density estimation.
+    Handles NaN values by setting them to zero, which corresponds to very
+    low probability regions where the flow may be unstable.
+    
+    The returned probabilities are used in the R-Anode likelihood ratio:
+    R(x,m) = p_sig(x,m) / p_bg(x,m)
+    as described in Equation (6) of the paper.
+    """
 
     # data to train model_S
     testtensor_S = torch.from_numpy(data_train_SR_S.astype("float32")).to(device)

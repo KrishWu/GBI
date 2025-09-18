@@ -4,18 +4,58 @@ import matplotlib.pyplot as plt
 
 
 def gen_sig():
+    """Generate toy signal data mimicking gravitational wave detection.
+    
+    Returns
+    -------
+    numpy.ndarray
+        Generated signal data with gravitational wave-like characteristics
+    """
     T = 20.0 # ms
     delta = 5. # ms
     A = 100.0
     return gen_data(A,T,delta,0.25)
 
 def gen_bg():
+    """Generate toy background data for gravitational wave analysis.
+    
+    Returns
+    -------
+    numpy.ndarray
+        Generated background data without signal components
+    """
     T = 20.0 # ms
     delta = 5. # ms
     A = 0.0
     return gen_data(A,T,delta,0.25)
 
-def gen_data(A,T,delta,noise):
+def gen_data(A, T, delta, noise):
+    """Generate simulated gravitational wave detector data.
+    
+    Creates toy data mimicking gravitational wave signals in dual detectors
+    with configurable amplitude, period, time delay, and noise levels.
+    
+    Parameters
+    ----------
+    A : float
+        Signal amplitude
+    T : float
+        Signal period in milliseconds
+    delta : float
+        Time delay between detectors in milliseconds
+    noise : float
+        Gaussian noise standard deviation
+        
+    Returns
+    -------
+    numpy.ndarray, shape (100, 5)
+        Generated data with columns [time, H_detector, L_detector, H+L, H-L]
+        
+    Notes
+    -----
+    This is a toy model for testing R-Anode methodology on simple
+    time-series data before applying to particle physics datasets.
+    """
     data = []
     for t in np.linspace(0,100,num=100): #ms
         h = A * np.sin(2*np.pi*t / T) * scipy.stats.norm.pdf(t,loc=50,scale=20) + np.random.normal(scale=noise)

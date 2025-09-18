@@ -13,12 +13,50 @@ from quickstats.plots.variable_distribution_plot import VariableDistributionPlot
 
 
 def mu2sig(mu, B: int):
+    """Convert signal fraction to significance.
+    
+    Parameters
+    ----------
+    mu : float
+        Signal fraction (S/(S+B))
+    B : int
+        Number of background events
+        
+    Returns
+    -------
+    float
+        Statistical significance S/√B
+        
+    Notes
+    -----
+    Used for converting R-Anode signal fraction estimates to
+    statistical significance for physics interpretation.
+    """
     # change this to the actual number of background events used in training + validatio
     S = B * mu
     return S / B**0.5
 
 
 def sig2mu(sig, B):
+    """Convert significance to signal fraction.
+    
+    Parameters
+    ----------
+    sig : float
+        Statistical significance
+    B : int
+        Number of background events
+        
+    Returns
+    -------
+    float
+        Signal fraction S/(S+B)
+        
+    Notes
+    -----
+    Inverse of mu2sig, used for setting target significance
+    levels in R-Anode analysis planning.
+    """
     # change this to the actual number of background events used in training + validation
     S = sig * B**0.5
     return S / B

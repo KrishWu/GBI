@@ -6,10 +6,46 @@ from src.utils.utils import str_encode_value
 
 
 def process_signals(input_path, mx, my, s_ratio, seed, type):
-    """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
-    The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=1)
+    """Process signal events into standard R-Anode feature format.
+    
+    This function transforms raw signal event data from the parametric
+    W' → X(qq)Y(qq) dataset into the standardized feature representation
+    used in R-Anode analysis, matching the signal processing described
+    in Section III.A of the R-Anode paper.
+    
+    Parameters
+    ----------
+    input_path : str
+        Path to HDF5 file containing parametric signal data
+    mx : int
+        Mass of X particle in GeV
+    my : int
+        Mass of Y particle in GeV
+    s_ratio : float
+        Signal-to-background ratio for this signal strength
+    seed : int
+        Ensemble seed for statistical uncertainty studies
+    type : str
+        Data type identifier ('x_train', 'x_val', 'x_test', etc.)
+        
+    Returns
+    -------
+    numpy.ndarray, shape (n_events, 6)
+        Processed signal events with columns:
+        [mjj, mj1, delta_mj, tau21j1, tau21j2, label]
+        where:
+        - mjj: Dijet invariant mass in TeV
+        - mj1: Smaller subjet mass in TeV
+        - delta_mj: Mass difference (mj2 - mj1) in TeV  
+        - tau21j1: N-subjettiness ratio τ21 for smaller mass jet
+        - tau21j2: N-subjettiness ratio τ21 for larger mass jet
+        - label: Signal label (always 1)
+        
+    Notes
+    -----
+    Processes events with pt-eta-phi-mass coordinates from the LHCO
+    parametric signal dataset. Features are sorted by subjet mass
+    to ensure consistent ordering with background processing.
     """
 
     s_ratio_str = str_encode_value(s_ratio)
@@ -58,10 +94,38 @@ def process_signals(input_path, mx, my, s_ratio, seed, type):
 def process_signals_test(
     input_path, output_path, mx, my, s_ratio, seed, use_true_mu=True
 ):
-    """
-    Will reprocess the signal such that they have shape (N, 6) where N is the number of events.
-    The columns are:
-    (mjj, mj1, delta_mj=mj2-mj1, tau21j1=tau2j1/tau1j1, tau21j2=tau2j2/tau1j2, label=1)
+    """Process signal test events and save to file.
+    
+    This function processes signal events specifically for testing/evaluation
+    in the R-Anode pipeline, extracting test events from the parametric
+    signal dataset and saving them in the standard format.
+    
+    Parameters
+    ----------
+    input_path : str
+        Path to HDF5 file containing parametric signal data
+    output_path : str
+        Path where processed test events will be saved
+    mx : int
+        Mass of X particle in GeV
+    my : int
+        Mass of Y particle in GeV
+    s_ratio : float
+        Signal-to-background ratio for this signal strength
+    seed : int
+        Ensemble seed for statistical uncertainty studies
+    use_true_mu : bool, default=True
+        Whether to use events at the true signal strength
+        
+    Returns
+    -------
+    None
+        Processed events are saved to output_path as numpy array
+        
+    Notes
+    -----
+    Currently only supports use_true_mu=True mode. The processed
+    events are used for final evaluation of R-Anode performance.
     """
 
     s_ratio_str = str_encode_value(s_ratio)
@@ -136,6 +200,35 @@ def process_signals_test(
 
 
 def process_raw_signals(input_path, output_path, mx, my):
+    """Process raw signal events from the original LHCO dataset format.
+    
+    This function processes signal events from the original LHCO R&D dataset
+    format, applying signal region selection and converting to the standard
+    R-Anode feature representation used throughout the analysis.
+    
+    Parameters
+    ----------
+    input_path : str
+        Path to HDF5 file containing raw signal data
+    output_path : str, optional
+        Path where processed events will be saved. If None, returns array
+    mx : int
+        Mass of X particle in GeV
+    my : int  
+        Mass of Y particle in GeV
+        
+    Returns
+    -------
+    numpy.ndarray or None
+        If output_path is None, returns processed events array.
+        Otherwise saves to file and returns None.
+        
+    Notes
+    -----
+    Applies signal region selection using SR_MIN and SR_MAX from config.
+    Used for processing the original LHCO dataset signals before
+    parametric signal generation was implemented.
+    """
     data_all_df = pd.read_hdf(input_path)
     target_process_df = data_all_df.query(f"mx=={mx} & my=={my}")
 
