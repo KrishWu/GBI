@@ -50,14 +50,24 @@ class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
 
 
 class ProcessBkg(BaseTask):
-    """
-    Will reprocess the GW background such that they have shape (N, 6) where N is the number of events.
-    The columns are:
-    (time, h, l, h+l, h-l, label=0)
-
-    Bkg events will first be splitted into SR and CR
-    The overall CR will be used to calculate the normalizing parameters, then it will be applied on CR events
-    Then CR events will be splitted into train and val set
+    """Task for processing background events in R-Anode workflow.
+    
+    This task implements background data preprocessing as part of the R-Anode
+    analysis pipeline. It handles background event processing, signal region/
+    control region separation, and preprocessing parameter calculation for
+    normalizing flows.
+    
+    The task processes background events into the standardized format used
+    throughout R-Anode, splits them into signal and control regions, and
+    computes preprocessing parameters needed for normalizing flow training.
+    
+    Notes
+    -----
+    Background events are split into SR (signal region) and CR (control region).
+    The CR events are used to calculate normalizing parameters and then split
+    into training and validation sets for background model training.
+    This follows the R-Anode methodology where background models are learned
+    from sideband data.
     """
 
     def output(self):
@@ -117,13 +127,32 @@ class PreprocessingFold(
     ProcessMixin,
     BaseTask,
 ):
-    """
-    This task will take signal train val test set with a given signal strength and fold split index
-    It also takes SR bkg trainval set, using the same train val split index as seed to split the SR bkg
-    into train and val set
-
-    Then it will mix the signal and bkg into SR data, and normalize the data using the normalizing parameters
-    calculated from CR data
+    """Task for fold-based data preprocessing in R-Anode workflow.
+    
+    This task implements k-fold cross-validation data preparation for R-Anode
+    analysis. It combines signal and background data according to specified
+    signal strength ratios, applies preprocessing transformations, and performs
+    fold-based splitting for robust uncertainty estimation.
+    
+    The task handles the critical data mixing step where signal events are
+    combined with background events at the specified signal fraction,
+    preprocessed using parameters learned from control regions, and split
+    into training/validation/test sets for R-Anode model training.
+    
+    Attributes
+    ----------
+    Inherits from multiple mixins:
+    - FoldSplitRandomMixin: Controls randomness in fold splitting
+    - FoldSplitUncertaintyMixin: Manages number of folds for uncertainty estimation
+    - SignalStrengthMixin: Handles signal-to-background ratio parameters
+    - ProcessMixin: Manages mass point configuration
+    - BaseTask: Provides basic workflow functionality
+    
+    Notes
+    -----
+    Creates separate datasets for signal model (mass-shifted) and background 
+    model training. The mass shifting by -3.5 TeV follows the R-Anode workflow
+    for conditional density estimation.
     """
 
     def requires(self):
@@ -258,6 +287,28 @@ class PlotMjjDistribution(
     ProcessMixin,
     BaseTask,
 ):
+    """Task for plotting dijet mass distributions in R-Anode analysis.
+    
+    This task creates diagnostic plots showing the dijet invariant mass (mjj)
+    distributions for background and signal events, with signal region
+    boundaries clearly marked. Used for validating data processing and
+    understanding the signal/background separation in mass space.
+    
+    The plot helps visualize the mass distributions used in R-Anode analysis
+    and shows the signal region definition relative to the background
+    distribution shape.
+    
+    Attributes
+    ----------
+    Inherits from ProcessMixin for mass point configuration and BaseTask
+    for basic workflow functionality.
+    
+    Notes
+    -----
+    Plots both background events (from all regions) and signal events,
+    with vertical lines marking the signal region boundaries at 3.3-3.7 TeV.
+    Essential for validating the R-Anode analysis setup and data quality.
+    """
 
     def requires(self):
         return {

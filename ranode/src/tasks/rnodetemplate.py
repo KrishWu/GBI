@@ -32,6 +32,37 @@ class RNodeTemplate(
     ProcessMixin,
     BaseTask,
 ):
+    """Task for training R-Anode signal model templates.
+    
+    This task implements the core R-Anode signal model training described
+    in Section II of the paper. It trains normalizing flow models to learn
+    the signal density p_sig(x,m) by fitting to the residual component
+    after subtracting the fixed background model from the data.
+    
+    This is the central innovation of R-Anode: fitting directly to the
+    signal component while holding the background model fixed, rather
+    than fitting to the full data density as in the original ANODE approach.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda:0'
+        Device for model training
+    batchsize : luigi.IntParameter, default=2048
+        Batch size for training
+    epoches : luigi.IntParameter, default=50
+        Number of training epochs
+    w_value : luigi.FloatParameter, default=0.05
+        Signal fraction value for this training point
+    early_stopping_patience : luigi.IntParameter, default=10
+        Patience for early stopping
+        
+    Notes
+    -----
+    Inherits from multiple mixins providing fold splitting, template
+    uncertainty, background model configuration, and signal strength
+    management. Central to the R-Anode methodology for residual signal
+    density estimation.
+    """
 
     device = luigi.Parameter(default="cuda:0")
     batchsize = luigi.IntParameter(default=2048)
@@ -170,6 +201,30 @@ class ScanRANODE(
     ProcessMixin,
     BaseTask,
 ):
+    """Task for performing R-Anode signal fraction scanning.
+    
+    This task implements the signal fraction scanning procedure described
+    in Section IV.B of the R-Anode paper. It coordinates multiple R-Anode
+    signal model evaluations across a range of signal fraction (w) values
+    to construct the likelihood surface for signal strength estimation.
+    
+    The task combines predictions from multiple trained signal models
+    (for ensemble uncertainty) and evaluates them at different w values
+    to generate the data needed for likelihood fitting and confidence
+    interval calculation.
+    
+    Attributes
+    ----------
+    device : luigi.Parameter, default='cuda'
+        Device for model evaluation
+        
+    Notes
+    -----
+    Central to the R-Anode methodology for signal strength estimation.
+    Coordinates signal and background model evaluation across the w
+    scan range to construct the likelihood surface L(w) used for
+    statistical inference as described in the paper.
+    """
 
     device = luigi.Parameter(default="cuda")
 

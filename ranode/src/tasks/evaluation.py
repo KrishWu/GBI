@@ -32,6 +32,24 @@ from src.tasks.rnodetemplate import (
 class FittingScanResults(
     ScanRANODE,
 ):
+    """Task for fitting likelihood scans from R-Anode results.
+    
+    This task implements the likelihood fitting procedure described in 
+    Section IV of the R-Anode paper. It takes the signal and background
+    probabilities from R-Anode scanning and performs Gaussian Process
+    fitting to extract signal strength estimates and confidence intervals.
+    
+    The task applies the bootstrap uncertainty estimation and implements
+    the confidence interval calculation using Wilks' theorem as described
+    in the R-Anode methodology.
+    
+    Notes
+    -----
+    Uses the bootstrap_and_fit function to perform GP likelihood fitting
+    and confidence interval estimation. Creates diagnostic plots showing
+    the fitted likelihood surface and computed confidence bounds.
+    Central to extracting quantitative results from R-Anode analysis.
+    """
 
     def requires(self):
         return ScanRANODE.req(self)
@@ -65,6 +83,30 @@ class ScanOverTrueMu(
     ProcessMixin,
     BaseTask,
 ):
+    """Task for scanning R-Anode performance over multiple signal strengths.
+    
+    This task performs a comprehensive scan of R-Anode performance across
+    different true signal strength values, generating the results needed
+    for performance evaluation plots. It coordinates fitting results from
+    multiple signal injection levels to assess method sensitivity.
+    
+    The scan covers signal fractions from very weak (0.01%) to stronger
+    (5%) levels, providing a comprehensive view of R-Anode performance
+    as described in the paper's results section.
+    
+    Attributes
+    ----------
+    scan_index : luigi.ListParameter
+        List of signal strength indices to scan over, corresponding to
+        different S/(S+B) ratios for systematic evaluation
+        
+    Notes
+    -----
+    Aggregates results from FittingScanResults across multiple signal
+    strengths to create performance summary plots. Essential for 
+    demonstrating R-Anode sensitivity across the full range of
+    signal strengths relevant for physics searches.
+    """
 
     scan_index = luigi.ListParameter(
         default=[
