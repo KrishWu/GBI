@@ -6,12 +6,42 @@ import src.models.flow_models as fnn
 
 
 class DensityEstimator:
+    """Base class for density estimation models in R-Anode.
+    
+    This class provides a factory pattern for creating different types of
+    density estimation models used in R-Anode, including background models
+    learned from sidebands and signal models learned from signal region data.
+    Supports multiple architectures including MAF, RealNVP, and RQS flows.
+    
+    The density estimators are central to R-Anode methodology, implementing
+    the background model p_bg(x|m) learned from control regions and the
+    signal model p_sig(x,m) learned from signal region data.
+    
+    Attributes
+    ----------
+    bound : bool
+        Whether the model has bounded support
+    params : dict
+        Model configuration parameters from YAML file
+        
+    Notes
+    -----
+    Uses factory pattern to instantiate appropriate model type based on
+    configuration. Supports the various flow architectures discussed in
+    Section III.B of the R-Anode paper.
+    """
     class Unknown(Exception):
-        """ Error to raise for unkown DensityEstimator model """
+        """Error raised when requesting unknown DensityEstimator model type."""
 
     @classmethod
     def get_all_subclasses(cls):
-        """ Get all the subclasses recursively of this class. """
+        """Get all subclasses recursively.
+        
+        Returns
+        -------
+        generator
+            Generator yielding all subclasses of DensityEstimator
+        """
         for subclass in cls.__subclasses__():
             yield from subclass.get_all_subclasses()
             yield subclass

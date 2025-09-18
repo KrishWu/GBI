@@ -10,11 +10,34 @@ import torch.nn.functional as F
 from nflows.transforms.splines import rational_quadratic as rqs
 
 def get_mask(in_features, out_features, in_flow_features, mask_type=None):
-    """
-    mask_type: input | None | output
-
-    See Figure 1 for a better illustration:
-    https://arxiv.org/pdf/1502.03509.pdf
+    """Generate autoregressive mask for normalizing flows.
+    
+    This function creates masks for autoregressive networks used in normalizing
+    flows, ensuring the autoregressive property where each output only depends
+    on previous inputs. Essential for implementing MAF/IAF transforms in R-Anode.
+    
+    Parameters
+    ----------
+    in_features : int
+        Number of input features
+    out_features : int  
+        Number of output features
+    in_flow_features : int
+        Number of flow features (typically same as input dimension)
+    mask_type : str, optional
+        Type of mask ('input', 'output', or None)
+        
+    Returns
+    -------
+    torch.Tensor
+        Binary mask tensor ensuring autoregressive property
+        
+    Notes
+    -----
+    Implements the masking scheme from Masked Autoregressive Flow (MAF).
+    See Figure 1 in https://arxiv.org/pdf/1502.03509.pdf for illustration.
+    Critical for maintaining the invertibility of normalizing flows used
+    in R-Anode for density estimation.
     """
     if mask_type == 'input':
         in_degrees = torch.arange(in_features) % in_flow_features
@@ -30,18 +53,32 @@ def get_mask(in_features, out_features, in_flow_features, mask_type=None):
 
 
 def get_CL_mask(num_inputs, mask_type='binary'):
-    """get the mask for a CL block
-
-    Parameters:
-    -----------
-    num_inputs (int): number of non-conditional dimensions of parameter space
-    mask_type (str): type of mask. If 'binary', then the mask is as described
-        in i-flow paper, if 'diagonal', then each dimension gets one pass on
-        its own.
-
-    Returns:
-    --------
-    mask (numpy): mask"""
+    """Generate coupling layer masks for normalizing flows.
+    
+    This function creates masks for coupling layers in normalizing flows,
+    determining which variables are transformed and which are kept fixed
+    in each layer. Used in R-Anode for implementing RealNVP-style transforms.
+    
+    Parameters
+    ----------
+    num_inputs : int
+        Number of non-conditional dimensions in parameter space
+    mask_type : str, default='binary'
+        Type of mask generation:
+        - 'binary': Binary representation mask as in i-flow paper
+        - 'diagonal': Each dimension gets one pass on its own
+        
+    Returns
+    -------
+    torch.Tensor
+        Mask tensor for coupling layer transformations
+        
+    Notes
+    -----
+    The binary mask type ensures good mixing of variables across layers
+    by using binary representations. Essential for the expressiveness
+    of normalizing flows in R-Anode density modeling.
+    """
 
     if mask_type == 'binary':
         n_masks = int(np.ceil(np.log2(num_inputs)))
@@ -61,6 +98,32 @@ def get_CL_mask(num_inputs, mask_type='binary'):
 
 
 class MaskedLinear(nn.Module):
+    """Masked linear layer for autoregressive neural networks.
+    
+    This layer implements masked linear transformations that preserve the
+    autoregressive property required for normalizing flows. The mask ensures
+    that each output only depends on a subset of inputs, maintaining the
+    invertibility necessary for R-Anode density estimation.
+    
+    Parameters
+    ----------
+    in_features : int
+        Number of input features
+    out_features : int
+        Number of output features  
+    mask : torch.Tensor
+        Binary mask defining allowed connections
+    cond_in_features : int, optional
+        Number of conditional input features
+    bias : bool, default=True
+        Whether to include bias terms
+        
+    Notes
+    -----
+    Core component of Masked Autoregressive Flow (MAF) and Inverse
+    Autoregressive Flow (IAF) architectures used in R-Anode for
+    learning signal and background densities.
+    """
     def __init__(self,
                  in_features,
                  out_features,
@@ -76,6 +139,20 @@ class MaskedLinear(nn.Module):
         self.register_buffer('mask', mask)
 
     def forward(self, inputs, cond_inputs=None):
+        """Forward pass through masked linear layer.
+        
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor
+        cond_inputs : torch.Tensor, optional
+            Conditional input tensor
+            
+        Returns
+        -------
+        torch.Tensor
+            Masked linear transformation output
+        """
         output = F.linear(inputs, self.linear.weight * self.mask,
                           self.linear.bias)
         if cond_inputs is not None:
@@ -87,8 +164,33 @@ nn.MaskedLinear = MaskedLinear
 
 
 class MADESplit(nn.Module):
-    """ An implementation of MADE
-    (https://arxiv.org/abs/1502.03509s).
+    """Masked Autoencoder for Distribution Estimation with separate scale/translation networks.
+    
+    This class implements MADE (Masked Autoencoder for Distribution Estimation)
+    with separate networks for scale and translation parameters. Used in R-Anode
+    for learning autoregressive transformations in normalizing flows for both
+    signal and background density estimation.
+    
+    Parameters
+    ----------
+    num_inputs : int
+        Number of input features
+    num_hidden : int
+        Number of hidden units in networks
+    num_cond_inputs : int, optional
+        Number of conditional input features
+    s_act : str, default='tanh'
+        Activation function for scale network
+    t_act : str, default='relu'  
+        Activation function for translation network
+    pre_exp_tanh : bool, default=False
+        Whether to apply tanh before exponential in scale
+        
+    Notes
+    -----
+    Implements the MADE architecture from https://arxiv.org/abs/1502.03509
+    Essential component for autoregressive flows in R-Anode density modeling.
+    Separate networks for scale and translation improve expressiveness.
     """
 
     def __init__(self,
@@ -131,6 +233,22 @@ class MADESplit(nn.Module):
                                                      output_mask))
 
     def forward(self, inputs, cond_inputs=None, mode='direct'):
+        """Forward pass through MADESplit network.
+        
+        Parameters
+        ----------
+        inputs : torch.Tensor
+            Input tensor
+        cond_inputs : torch.Tensor, optional
+            Conditional input tensor
+        mode : str, default='direct'
+            Transformation mode ('direct' for encoding, 'inverse' for decoding)
+            
+        Returns
+        -------
+        tuple
+            (transformed_data, log_det_jacobian) for the transformation
+        """
         if mode == 'direct':
             h = self.s_joiner(inputs, cond_inputs)
             m = self.s_trunk(h)
@@ -161,8 +279,31 @@ class MADESplit(nn.Module):
             return x, -a.sum(-1, keepdim=True)
 
 class MADE(nn.Module):
-    """ An implementation of MADE
-    (https://arxiv.org/abs/1502.03509s).
+    """Masked Autoencoder for Distribution Estimation (unified network).
+    
+    This class implements the standard MADE architecture with a single
+    network producing both scale and translation parameters. Simpler than
+    MADESplit but still effective for autoregressive density modeling
+    in R-Anode applications.
+    
+    Parameters
+    ----------
+    num_inputs : int
+        Number of input features
+    num_hidden : int
+        Number of hidden units
+    num_cond_inputs : int, optional
+        Number of conditional input features
+    act : str, default='relu'
+        Activation function for the network
+    pre_exp_tanh : bool, default=False
+        Whether to apply tanh before exponential in scale
+        
+    Notes
+    -----
+    Implements the original MADE from https://arxiv.org/abs/1502.03509
+    More compact than MADESplit but may have reduced expressiveness.
+    Used as an alternative architecture in R-Anode flow implementations.
     """
 
     def __init__(self,
@@ -818,7 +959,34 @@ def sum_except_batch(x, num_batch_dims=1):
 
 
 class CouplingLayerBlock(nn.Module):
-    """ An implementation of a CL module"""
+    """Coupling layer block for normalizing flows.
+    
+    This class implements a block of coupling layers for RealNVP-style
+    normalizing flows. Coupling layers are an alternative to autoregressive
+    flows, offering better parallelization while maintaining invertibility.
+    Used in R-Anode for efficient density estimation.
+    
+    Parameters
+    ----------
+    num_inputs : int
+        Number of input features
+    num_hidden : int
+        Number of hidden units in transformation networks
+    num_cond_inputs : int, optional
+        Number of conditional input features
+    s_act : str, default='relu'
+        Activation function for scale network
+    t_act : str, default='relu'
+        Activation function for translation network
+    mask_type : str, default='binary'
+        Type of mask for variable partitioning
+        
+    Notes
+    -----
+    Implements RealNVP-style coupling layers which split variables into
+    two groups and transform one group conditioned on the other. More
+    parallelizable than autoregressive flows but potentially less expressive.
+    """
 
     def __init__(self,
                  num_inputs,
@@ -846,7 +1014,30 @@ class CouplingLayerBlock(nn.Module):
 
 
 class CouplingLayerBlock_RQS(nn.Module):
-    """ An implementation of a CL module"""
+    """Coupling layer block with Rational Quadratic Splines.
+    
+    This class implements coupling layers using Rational Quadratic Spline (RQS)
+    transformations, which are more expressive than affine transformations.
+    RQS transforms are used in R-Anode for improved density modeling capability,
+    particularly for the signal model which may have complex distributions.
+    
+    Parameters
+    ----------
+    num_inputs : int
+        Number of input features
+    num_hidden : int
+        Number of hidden units in transformation networks
+    num_cond_inputs : int, optional
+        Number of conditional input features
+    mask_type : str, default='binary'
+        Type of mask for variable partitioning
+        
+    Notes
+    -----
+    RQS transformations are more expressive than affine coupling layers,
+    allowing for better modeling of complex signal distributions in R-Anode.
+    See the R-Anode paper Section III.B for discussion of RQS vs affine transforms.
+    """
 
     def __init__(self,
                  num_inputs,
