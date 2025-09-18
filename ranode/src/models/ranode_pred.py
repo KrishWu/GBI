@@ -14,6 +14,47 @@ from src.models.train_model_S import pred_model_S
 
 
 def ranode_pred(model_S_list, test_data_dict, bkg_prob_dir, device="cuda"):
+    """Perform R-Anode anomaly detection predictions on test data.
+    
+    This function implements the core R-Anode prediction procedure described
+    in Section II of the paper. It evaluates both signal and background
+    density models on test data to compute the likelihood ratio used for
+    anomaly detection and signal strength estimation.
+    
+    Parameters
+    ----------
+    model_S_list : list
+        List of trained signal model paths for ensemble prediction
+    test_data_dict : dict
+        Dictionary containing paths to test datasets:
+        - SR_data_test_model_S: Signal region test data for signal model
+        - SR_data_test_model_B: Signal region test data for background model
+        - SR_mass_hist: Mass histogram for background mass distribution
+    bkg_prob_dir : path object
+        Path to background model log-probabilities
+    device : str, default='cuda'
+        Device for model evaluation
+        
+    Returns
+    -------
+    tuple
+        (prob_S, prob_B) where:
+        - prob_S: Signal model probabilities, shape (n_models, n_events)
+        - prob_B: Background model probabilities, shape (n_events,)
+        
+    Notes
+    -----
+    Implements the R-Anode likelihood construction from Equation (2):
+    p_data(x,m) = w * p_sig(x,m) + (1-w) * p_bg(x,m)
+    
+    The signal probabilities from multiple models enable uncertainty
+    estimation through ensemble averaging. Background probabilities
+    combine the learned conditional density p_bg(x|m) with the
+    mass distribution p_bg(m) estimated from data.
+    
+    These probabilities are used downstream for likelihood fitting
+    and confidence interval calculation as described in Section IV.
+    """
 
     # load data
     print("loading data")

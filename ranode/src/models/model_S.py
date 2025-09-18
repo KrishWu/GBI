@@ -35,6 +35,46 @@ def flows_model_RQS(
     use_batch_norm=True,
     dropout_probability=0.2,
 ):
+    """Create Rational Quadratic Spline normalizing flow model for R-Anode.
+    
+    This function constructs the signal model architecture used in R-Anode,
+    implementing a normalizing flow with Rational Quadratic Spline (RQS)
+    transformations. This is the core density estimator for learning the
+    signal distribution p_sig(x,m) as described in Section II of the R-Anode paper.
+    
+    Parameters
+    ----------
+    num_layers : int, default=2
+        Number of transformation layers in the flow
+    num_features : int, default=4
+        Number of input features (typically subjet masses and τ21 ratios)
+    num_blocks : int, default=2
+        Number of blocks per transformation layer
+    hidden_features : int, default=32
+        Number of hidden units in transformation networks
+    device : str, default='cpu'
+        Device for model computation ('cpu' or 'cuda')
+    context_features : int, default=1
+        Number of conditional features (typically dijet mass)
+    random_mask : bool, default=True
+        Whether to use random masking in autoregressive layers
+    use_batch_norm : bool, default=True
+        Whether to apply batch normalization
+    dropout_probability : float, default=0.2
+        Dropout probability for regularization
+        
+    Returns
+    -------
+    nflows.Flow
+        Configured normalizing flow model for signal density estimation
+        
+    Notes
+    -----
+    RQS transformations are more expressive than affine transforms, enabling
+    better modeling of complex signal distributions. The model is conditioned
+    on dijet mass m to learn p_sig(x|m). This architecture was chosen based
+    on the performance comparisons described in Section III.B of the R-Anode paper.
+    """
 
     flow_params_rec_energy = {
         "num_blocks": num_blocks,  # num of layers per block
