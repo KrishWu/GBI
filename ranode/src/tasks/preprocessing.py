@@ -20,10 +20,20 @@ from src.utils.law import (
 
 
 class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
-    """
-    Will reprocess the GW signal such that they have shape (N, 6) where N is the number of events.
-    The columns are:
-    (time, h, l, h+l, h-l, label=1)
+    """Task for processing signal events in R-Anode workflow.
+    
+    This task implements signal data preprocessing as part of the R-Anode
+    workflow pipeline. It handles signal event format standardization,
+    feature extraction, and preparation for density model training.
+    
+    Inherits from SignalStrengthMixin for signal ratio management,
+    ProcessMixin for mass point configuration, and BaseTask for
+    common workflow functionality.
+    
+    Notes
+    -----
+    Part of the Luigi/Law workflow system for R-Anode analysis pipeline.
+    Ensures reproducible signal processing with proper dependency tracking.
     """
 
     def output(self):
