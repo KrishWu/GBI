@@ -141,8 +141,6 @@ def bootstrap_and_fit(
         mu_scan_values.reshape(-1, 1) * prob_S_nominal
         + (1 - mu_scan_values.reshape(-1, 1)) * prob_B_nominal
     )
-    # numerical floor to avoid log(0)
-    likelihood_nominal = np.clip(likelihood_nominal, 1e-32, None)
     log_likelihood_nominal = np.log(likelihood_nominal)
     log_likelihood_nominal_mean = log_likelihood_nominal.mean(axis=1)
 
@@ -164,7 +162,6 @@ def bootstrap_and_fit(
             mu_scan_values.reshape(-1, 1) * prob_S_bootstrap_i
             + (1 - mu_scan_values.reshape(-1, 1)) * prob_B_nominal
         )
-        likelihood_bootstrap_i = np.clip(likelihood_bootstrap_i, 1e-32, None)
         log_likelihood_bootstrap_i = np.log(likelihood_bootstrap_i)
         log_likelihood_bootstrap_i_mean = log_likelihood_bootstrap_i.mean(axis=1)
 
@@ -177,16 +174,6 @@ def bootstrap_and_fit(
     mu_scan_values_log = np.log10(mu_scan_values)
     x_values = mu_scan_values_log
     y_values = log_likelihood_nominal_mean
-
-    # filter out any non-finite points before GP fit
-    finite_mask = (
-        np.isfinite(x_values)
-        & np.isfinite(y_values)
-        & np.isfinite(log_likelihood_nominal_std)
-    )
-    x_values = x_values[finite_mask]
-    y_values = y_values[finite_mask]
-    log_likelihood_nominal_std = log_likelihood_nominal_std[finite_mask]
 
     # ensure shapes for GP
     x_values = x_values.reshape(-1, 1)
@@ -201,19 +188,13 @@ def bootstrap_and_fit(
         return xopt, fopt
     
     # define the kernel
-    kernel = kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=0.2, length_scale_bounds=(1e-3, 1e3)) \
-            # + WhiteKernel(noise_level=1e-6, noise_level_bounds=(1e-12, 2e-4))
+    kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=0.2, length_scale_bounds=(1e-3, 1e3))
     # kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RationalQuadratic(length_scale=1.0, alpha=0.5,
     #                                                          length_scale_bounds=(0.1, 10),
     #                                                          alpha_bounds=(1e-4, 1e3))
         #  + WhiteKernel(noise_level=1e-6, noise_level_bounds=(1e-12, 1e-3))
-    # enforce a minimum noise level to avoid zero alpha
-    alpha_vals = np.maximum(log_likelihood_nominal_std**2, 1e-12)
     gp = GaussianProcessRegressor(
-        kernel=kernel,
-        n_restarts_optimizer=100,
-        optimizer=custom_optimizer,
-        alpha=alpha_vals,
+        kernel=kernel, n_restarts_optimizer=100, optimizer=custom_optimizer, alpha=log_likelihood_nominal_std**2
     )
     gp.fit(x_values, y_values)
 
