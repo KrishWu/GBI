@@ -14,7 +14,7 @@ def gen_sig():
     T = 20.0 # ms
     delta = 5. # ms
     A = 100.0
-    return gen_data(A,T,delta,0.25)
+    return gen_data(A,T,delta,0)
 
 def gen_bg():
     """Generate toy background data for gravitational wave analysis.
@@ -65,24 +65,24 @@ def gen_data(A, T, delta, noise):
     return np.array(data)
 
 
-sdata = gen_sig()
-bdata = gen_bg()
+# sdata = gen_sig()
+# bdata = gen_bg()
 
-plt.plot(sdata[:,0],sdata[:,1],label="H")
-plt.plot(sdata[:,0],sdata[:,2],label="L")
-plt.plot(sdata[:,0],sdata[:,1]+sdata[:,2],label="H+L",linestyle=":")
-plt.plot(sdata[:,0],sdata[:,1]-sdata[:,2],label="H-L",linestyle=":")
-plt.xlabel("Time [ms]")
-plt.ylabel("Strain")
-plt.legend()
-plt.savefig("sigs.pdf")
-plt.clf()
+# plt.plot(sdata[:,0],sdata[:,1],label="H")
+# plt.plot(sdata[:,0],sdata[:,2],label="L")
+# plt.plot(sdata[:,0],sdata[:,1]+sdata[:,2],label="H+L",linestyle=":")
+# plt.plot(sdata[:,0],sdata[:,1]-sdata[:,2],label="H-L",linestyle=":")
+# plt.xlabel("Time [ms]")
+# plt.ylabel("Strain")
+# plt.legend()
+# plt.savefig("sigs.pdf")
+# plt.clf()
 
-plt.plot(bdata[:,0],bdata[:,1],label="H")
-plt.plot(bdata[:,0],bdata[:,2],label="L")
-plt.plot(bdata[:,0],bdata[:,1]+bdata[:,1],label="H+L",linestyle=":")
-plt.plot(bdata[:,0],bdata[:,1]-bdata[:,1],label="H-L",linestyle=":")
-plt.legend()
-plt.xlabel("Time [ms]")
-plt.ylabel("Strain")
-plt.savefig("bgs.pdf")
+# plt.plot(bdata[:,0],bdata[:,1],label="H")
+# plt.plot(bdata[:,0],bdata[:,2],label="L")
+# plt.plot(bdata[:,0],bdata[:,1]+bdata[:,1],label="H+L",linestyle=":")
+# plt.plot(bdata[:,0],bdata[:,1]-bdata[:,1],label="H-L",linestyle=":")
+# plt.legend()
+# plt.xlabel("Time [ms]")
+# plt.ylabel("Strain")
+# plt.savefig("bgs.pdf")

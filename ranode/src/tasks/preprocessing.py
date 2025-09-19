@@ -46,6 +46,8 @@ class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
         from src.data_prep.gw_processing import process_gw_signals
 
         sig = process_gw_signals()
+        # ensure directory exists
+        self.output()["signals"].parent.touch()
         np.save(self.output()["signals"].path, sig)
 
 
@@ -116,7 +118,9 @@ class ProcessBkg(BaseTask):
         )
 
         # save training and validation data in CR
+        self.output()["CR_train"].parent.touch()
         np.save(self.output()["CR_train"].path, CR_bkg_train)
+        self.output()["CR_val"].parent.touch()
         np.save(self.output()["CR_val"].path, CR_bkg_val)
 
 
@@ -177,7 +181,7 @@ class PreprocessingFold(
                 "data_SR_data_trainval_model_B.npy"
             ),
             "SR_data_test_model_B": self.local_target("data_SR_data_test_model_B.npy"),
-            "SR_time_hist": self.local_target("SR_time_hist.json"),
+            "SR_mass_hist": self.local_target("SR_mass_hist.json"),
         }
 
     @law.decorator.safe_output
@@ -200,13 +204,13 @@ class PreprocessingFold(
         for key in pre_parameters.keys():
             pre_parameters[key] = np.array(pre_parameters[key])
 
-        # ----------------------- time hist in SR -----------------------
-        time = SR_bkg[SR_bkg[:, -1] == 0, 0]
-        bins = np.linspace(np.min(time), np.max(time), 50)
-        hist_back = np.histogram(time, bins=bins, density=True)
+        # ----------------------- mass hist in SR -----------------------
+        mass = SR_bkg[SR_bkg[:, -1] == 0, 0]
+        bins = np.linspace(np.min(mass), np.max(mass), 50)
+        hist_back = np.histogram(mass, bins=bins, density=True)
         # save time histogram and bins
-        self.output()["SR_time_hist"].parent.touch()
-        with open(self.output()["SR_time_hist"].path, "w") as f:
+        self.output()["SR_mass_hist"].parent.touch()
+        with open(self.output()["SR_mass_hist"].path, "w") as f:
             json.dump({"hist": hist_back[0], "bins": hist_back[1]}, f, cls=NumpyEncoder)
 
         # ----------------------- make SR data -----------------------
@@ -242,18 +246,23 @@ class PreprocessingFold(
         SR_data_trainval_model_S[:, 0] -= 3.5
         SR_data_test_model_S[:, 0] -= 3.5
 
+        # ensure directories exist
+        self.output()["SR_data_trainval_model_S"].parent.touch()
         np.save(
             self.output()["SR_data_trainval_model_S"].path, SR_data_trainval_model_S
         )
+        self.output()["SR_data_test_model_S"].parent.touch()
         np.save(self.output()["SR_data_test_model_S"].path, SR_data_test_model_S)
 
         # copy another set for background model
         SR_data_trainval_model_B = SR_data_trainval.copy()
         SR_data_test_model_B = SR_data_test.copy()
 
+        self.output()["SR_data_trainval_model_B"].parent.touch()
         np.save(
             self.output()["SR_data_trainval_model_B"].path, SR_data_trainval_model_B
         )
+        self.output()["SR_data_test_model_B"].parent.touch()
         np.save(self.output()["SR_data_test_model_B"].path, SR_data_test_model_B)
 
         # print out some info

@@ -162,7 +162,8 @@ class SignalStrengthMixin:
             8: 0.00527499706370262,
             9: 0.009261187281287938,
             10: 0.01625964693881482,
-            11: 0.02854667663497933,
+            # 11: 0.02854667663497933,
+            11: 0.10,
             12: 0.05011872336272722,
         }
 
@@ -324,7 +325,7 @@ class WScanMixin:
 
     w_min = luigi.FloatParameter(default=1e-5)
     w_max = luigi.FloatParameter(default=0.1)
-    scan_number = luigi.IntParameter(default=5)
+    scan_number = luigi.IntParameter(default=10)
 
     def store_parts(self):
         return super().store_parts() + (
