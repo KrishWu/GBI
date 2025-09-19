@@ -341,15 +341,9 @@ class PlotMjjDistribution(
         bkg_time = np.concatenate([SR_bkg_time, SB_bkg_time], axis=0)
 
         # process signal
-        data_dir = os.environ.get("DATA_DIR")
+        from src.data_prep.gw_processing import process_gw_signals
 
-        data_path = f"{data_dir}/extra_raw_lhco_samples/events_anomalydetection_Z_XY_qq_parametric.h5"
-
-        from src.data_prep.signal_processing import process_raw_signals
-
-        signal = process_raw_signals(
-            data_path, output_path=None
-        )
+        signal = process_gw_signals()
         signal_time = signal[:, 0]
 
         # make plot
