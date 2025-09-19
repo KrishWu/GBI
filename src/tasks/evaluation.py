@@ -179,8 +179,6 @@ class ScanOverTrueMu(
         }
 
         misc = {
-            "tx": self.tx,
-            "ty": self.ty,
             "use_full_stats": self.use_full_stats,
             "use_perfect_modelB": self.use_perfect_bkg_model,
             "use_modelB_genData": self.use_bkg_model_gen_data,
@@ -221,15 +219,10 @@ class ScanOverTrueMuEnsembleAvg(
     BaseTask,
 ):
 
-    tx = luigi.IntParameter(default=100)
-    ty = luigi.IntParameter(default=500)
-
     num_ensemble = luigi.IntParameter(default=10)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"tx_{self.tx}",
-            f"ty_{self.ty}",
             f"num_ensemble_{self.num_ensemble}",
         )
 
@@ -344,9 +337,9 @@ class ScanMultiModelsOverTrueMuEnsembleAvg(ScanOverTrueMuEnsembleAvg):
 
     def output(self):
         if self.use_full_stats:
-            return self.local_target(f"fullstats_{self.tx}_{self.ty}_scan.pdf")
+            return self.local_target(f"fullstats_scan.pdf")
         else:
-            return self.local_target(f"lumi_matched_{self.tx}_{self.ty}_scan.pdf")
+            return self.local_target(f"lumi_matched_scan.pdf")
 
     @law.decorator.safe_output
     def run(self):
@@ -411,15 +404,11 @@ class ScanMultiMassOverTrueMuEnsembleAvg(
                 self,
                 use_perfect_bkg_model=False,
                 use_bkg_model_gen_data=False,
-                tx=100,
-                ty=500,
             ),
             "300, 300": ScanOverTrueMuEnsembleAvg.req(
                 self,
                 use_perfect_bkg_model=False,
                 use_bkg_model_gen_data=False,
-                tx=300,
-                ty=300,
             ),
         }
 
@@ -462,8 +451,8 @@ class ScanMultiMassOverTrueMuEnsembleAvg(
 
         label_map = {
             "true": "Truth",
-            "100, 500": "tx=100 ms, ty=500 ms",
-            "300, 300": "tx=300 ms, ty=300 ms",
+            "100, 500": "GW Signal Type A",
+            "300, 300": "GW Signal Type B",
         }
         misc["label_map"] = label_map
 

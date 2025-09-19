@@ -5,7 +5,7 @@ from src.data_prep.utils import get_dijetmass_ptetaphi
 from src.utils.utils import str_encode_value
 
 
-def process_signals(input_path, tx, ty, s_ratio, seed, type):
+def process_signals(input_path, s_ratio, seed, type):
     """Process signal events into standard R-Anode feature format.
     
     This function transforms raw gravitational wave signal event data 
@@ -16,10 +16,6 @@ def process_signals(input_path, tx, ty, s_ratio, seed, type):
     ----------
     input_path : str
         Path to HDF5 file containing gravitational wave signal data
-    tx : int
-        Time parameter X in milliseconds
-    ty : int
-        Time parameter Y in milliseconds
     s_ratio : float
         Signal-to-background ratio for this signal strength
     seed : int
@@ -31,18 +27,13 @@ def process_signals(input_path, tx, ty, s_ratio, seed, type):
     -------
     numpy.ndarray, shape (n_events, 6)
         Processed signal events with columns:
-        [mjj, mj1, delta_mj, tau21j1, tau21j2, label]
-        where:
-        - mjj: Dijet invariant mass in TeV
-        - mj1: Smaller subjet mass in TeV
-        - delta_mj: Mass difference (mj2 - mj1) in TeV  
-        - tau21j1: N-subjettiness ratio τ21 for smaller mass jet
-        - tau21j2: N-subjettiness ratio τ21 for larger mass jet
-        - label: Signal label (always 1)
+        [time, H_strain, L_strain, H+L, H-L, label]
+        where label=1 for signal events
         
     Notes
     -----
-    Processes events with pt-eta-phi-mass coordinates from the LHCO
+    Uses fixed gravitational wave signal parameters for simplicity.
+    Generates synthetic signals using the gen_data() framework.
     parametric signal dataset. Features are sorted by subjet mass
     to ensure consistent ordering with background processing.
     """
@@ -52,14 +43,12 @@ def process_signals(input_path, tx, ty, s_ratio, seed, type):
     data_all_df = h5py.File(input_path, "r")[f"{tx}_{ty}"]
     data_all_df = data_all_df[f"ensemble_{seed}"][s_ratio_str][type][:]
 
-    # Generate gravitational wave signal data based on time parameters
-    # For now, use the gen_data function to create synthetic signals
+    # Generate gravitational wave signal data using fixed parameters
     from src.data_prep.gen_data import gen_sig, gen_data
     
-    # Generate signal based on time parameters tx, ty
-    # Using tx as amplitude scale and ty as time scale  
-    T = ty / 10.0  # Period in ms, scaled from ty parameter
-    A = tx * 2.0   # Amplitude scaled from tx parameter
+    # Use fixed gravitational wave signal parameters for simplicity
+    T = 20.0   # Period in ms (fixed)
+    A = 100.0  # Amplitude (fixed)
     delta = 5.0    # Time delay between detectors in ms
     noise = 0.1    # Low noise for signal
     
@@ -92,7 +81,7 @@ def process_signals(input_path, tx, ty, s_ratio, seed, type):
 
 
 def process_signals_test(
-    input_path, output_path, tx, ty, s_ratio, seed, use_true_mu=True
+    input_path, output_path, s_ratio, seed, use_true_mu=True
 ):
     """Process signal test events and save to file.
     
@@ -106,10 +95,6 @@ def process_signals_test(
         Path to HDF5 file containing gravitational wave signal data
     output_path : str
         Path where processed test events will be saved
-    tx : int
-        Time parameter X in milliseconds
-    ty : int
-        Time parameter Y in milliseconds
     s_ratio : float
         Signal-to-background ratio for this signal strength
     seed : int
@@ -136,13 +121,13 @@ def process_signals_test(
     else:
         raise NotImplementedError("using all events for testing is not implemented yet")
 
-    # Generate gravitational wave test signal data based on time parameters
+    # Generate gravitational wave test signal data using fixed parameters
     # Similar to process_signals but for test data
     from src.data_prep.gen_data import gen_data
     
-    # Generate signal based on time parameters tx, ty
-    T = ty / 10.0  # Period in ms, scaled from ty parameter
-    A = tx * 2.0   # Amplitude scaled from tx parameter
+    # Use fixed gravitational wave signal parameters
+    T = 20.0   # Period in ms (fixed)
+    A = 100.0  # Amplitude (fixed)
     delta = 5.0    # Time delay between detectors in ms
     noise = 0.1    # Low noise for signal
     
@@ -176,7 +161,7 @@ def process_signals_test(
     # np.save(output_path, output)
 
 
-def process_raw_signals(input_path, output_path, tx, ty):
+def process_raw_signals(input_path, output_path):
     """Process raw gravitational wave signal events.
     
     This function processes gravitational wave signal events,
@@ -189,10 +174,6 @@ def process_raw_signals(input_path, output_path, tx, ty):
         Path to HDF5 file containing raw gravitational wave signal data
     output_path : str, optional
         Path where processed events will be saved. If None, returns array
-    tx : int
-        Time parameter X in milliseconds
-    ty : int  
-        Time parameter Y in milliseconds
         
     Returns
     -------
@@ -203,16 +184,15 @@ def process_raw_signals(input_path, output_path, tx, ty):
     Notes
     -----
     Applies signal region selection using SR_MIN and SR_MAX from config.
-    Used for processing the original LHCO dataset signals before
-    parametric signal generation was implemented.
+    Uses fixed gravitational wave parameters for simplified processing.
     """
-    # Generate gravitational wave signal data based on time parameters
+    # Generate gravitational wave signal data using fixed parameters
     # This replaces the particle physics signal processing
     from src.data_prep.gen_data import gen_data
     
-    # Generate signal based on time parameters tx, ty
-    T = ty / 10.0  # Period in ms, scaled from ty parameter
-    A = tx * 2.0   # Amplitude scaled from tx parameter
+    # Use fixed gravitational wave signal parameters
+    T = 20.0   # Period in ms (fixed)
+    A = 100.0  # Amplitude (fixed)
     delta = 5.0    # Time delay between detectors in ms
     noise = 0.1    # Low noise for signal
     
