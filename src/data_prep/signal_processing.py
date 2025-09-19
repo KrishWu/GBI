@@ -5,22 +5,21 @@ from src.data_prep.utils import get_dijetmass_ptetaphi
 from src.utils.utils import str_encode_value
 
 
-def process_signals(input_path, mx, my, s_ratio, seed, type):
+def process_signals(input_path, tx, ty, s_ratio, seed, type):
     """Process signal events into standard R-Anode feature format.
     
-    This function transforms raw signal event data from the parametric
-    W' → X(qq)Y(qq) dataset into the standardized feature representation
-    used in R-Anode analysis, matching the signal processing described
-    in Section III.A of the R-Anode paper.
+    This function transforms raw gravitational wave signal event data 
+    into the standardized feature representation used in R-Anode analysis,
+    adapted from the methodology described in Section III.A of the R-Anode paper.
     
     Parameters
     ----------
     input_path : str
-        Path to HDF5 file containing parametric signal data
-    mx : int
-        Mass of X particle in GeV
-    my : int
-        Mass of Y particle in GeV
+        Path to HDF5 file containing gravitational wave signal data
+    tx : int
+        Time parameter X in milliseconds
+    ty : int
+        Time parameter Y in milliseconds
     s_ratio : float
         Signal-to-background ratio for this signal strength
     seed : int
@@ -50,7 +49,7 @@ def process_signals(input_path, mx, my, s_ratio, seed, type):
 
     s_ratio_str = str_encode_value(s_ratio)
 
-    data_all_df = h5py.File(input_path, "r")[f"{mx}_{my}"]
+    data_all_df = h5py.File(input_path, "r")[f"{tx}_{ty}"]
     data_all_df = data_all_df[f"ensemble_{seed}"][s_ratio_str][type][:]
 
     # shape is (N, 14) where N is the number of events, the columns orders are
@@ -92,24 +91,24 @@ def process_signals(input_path, mx, my, s_ratio, seed, type):
 
 
 def process_signals_test(
-    input_path, output_path, mx, my, s_ratio, seed, use_true_mu=True
+    input_path, output_path, tx, ty, s_ratio, seed, use_true_mu=True
 ):
     """Process signal test events and save to file.
     
-    This function processes signal events specifically for testing/evaluation
-    in the R-Anode pipeline, extracting test events from the parametric
-    signal dataset and saving them in the standard format.
+    This function processes gravitational wave signal events specifically 
+    for testing/evaluation in the R-Anode pipeline, extracting test events 
+    and saving them in the standard format.
     
     Parameters
     ----------
     input_path : str
-        Path to HDF5 file containing parametric signal data
+        Path to HDF5 file containing gravitational wave signal data
     output_path : str
         Path where processed test events will be saved
-    mx : int
-        Mass of X particle in GeV
-    my : int
-        Mass of Y particle in GeV
+    tx : int
+        Time parameter X in milliseconds
+    ty : int
+        Time parameter Y in milliseconds
     s_ratio : float
         Signal-to-background ratio for this signal strength
     seed : int
@@ -131,7 +130,7 @@ def process_signals_test(
     s_ratio_str = str_encode_value(s_ratio)
 
     if use_true_mu:
-        data_all_df = h5py.File(input_path, "r")[f"{mx}_{my}"]
+        data_all_df = h5py.File(input_path, "r")[f"{tx}_{ty}"]
         data_all_df = data_all_df[f"ensemble_{seed}"][s_ratio_str]["x_test"][:]
     else:
         raise NotImplementedError("using all events for testing is not implemented yet")
@@ -199,23 +198,23 @@ def process_signals_test(
     # np.save(output_path, output)
 
 
-def process_raw_signals(input_path, output_path, mx, my):
-    """Process raw signal events from the original LHCO dataset format.
+def process_raw_signals(input_path, output_path, tx, ty):
+    """Process raw gravitational wave signal events.
     
-    This function processes signal events from the original LHCO R&D dataset
-    format, applying signal region selection and converting to the standard
+    This function processes gravitational wave signal events,
+    applying signal region selection and converting to the standard
     R-Anode feature representation used throughout the analysis.
     
     Parameters
     ----------
     input_path : str
-        Path to HDF5 file containing raw signal data
+        Path to HDF5 file containing raw gravitational wave signal data
     output_path : str, optional
         Path where processed events will be saved. If None, returns array
-    mx : int
-        Mass of X particle in GeV
-    my : int  
-        Mass of Y particle in GeV
+    tx : int
+        Time parameter X in milliseconds
+    ty : int  
+        Time parameter Y in milliseconds
         
     Returns
     -------
@@ -230,7 +229,7 @@ def process_raw_signals(input_path, output_path, mx, my):
     parametric signal generation was implemented.
     """
     data_all_df = pd.read_hdf(input_path)
-    target_process_df = data_all_df.query(f"mx=={mx} & my=={my}")
+    target_process_df = data_all_df.query(f"tx=={tx} & ty=={ty}")
 
     # get jet p4 info to calculate dijet mjj
     jet1_p4 = target_process_df[["ptj1", "etaj1", "phij1", "mj1"]].values
@@ -265,7 +264,7 @@ def process_raw_signals(input_path, output_path, mx, my):
         [mjj, mjmin, mjmax - mjmin, tau21min, tau21max, np.ones(len(mj1mj2))], axis=1
     )
 
-    print(f"Num signals for mx={mx}, my={my}: {len(output)}")
+    print(f"Num signals for tx={tx}, ty={ty}: {len(output)}")
 
     if output_path is not None:
         np.save(output_path, output)

@@ -296,20 +296,20 @@ class PlotMjjDistribution(
     ProcessMixin,
     BaseTask,
 ):
-    """Task for plotting dijet mass distributions in R-Anode analysis.
+    """Task for plotting time distributions in R-Anode analysis.
     
-    This task creates diagnostic plots showing the dijet invariant mass (mjj)
+    This task creates diagnostic plots showing the time
     distributions for background and signal events, with signal region
     boundaries clearly marked. Used for validating data processing and
-    understanding the signal/background separation in mass space.
+    understanding the signal/background separation in time space.
     
-    The plot helps visualize the mass distributions used in R-Anode analysis
+    The plot helps visualize the time distributions used in R-Anode analysis
     and shows the signal region definition relative to the background
     distribution shape.
     
     Attributes
     ----------
-    Inherits from ProcessMixin for mass point configuration and BaseTask
+    Inherits from ProcessMixin for time point configuration and BaseTask
     for basic workflow functionality.
     
     Notes
@@ -325,20 +325,20 @@ class PlotMjjDistribution(
         }
 
     def output(self):
-        return self.local_target("mjj_distribution.pdf")
+        return self.local_target("time_distribution.pdf")
 
     @law.decorator.safe_output
     def run(self):
 
         # load bkg
         SR_bkg = np.load(self.input()["bkg"]["SR_bkg"].path)
-        SR_bkg_mjj = SR_bkg[:, 0]
+        SR_bkg_time = SR_bkg[:, 0]
         SB_bkg_train = np.load(self.input()["bkg"]["CR_train"].path)
-        SB_bkg_mjj_train = SB_bkg_train[:, 0]
+        SB_bkg_time_train = SB_bkg_train[:, 0]
         SB_bkg_val = np.load(self.input()["bkg"]["CR_val"].path)
-        SB_bkg_mjj_val = SB_bkg_val[:, 0]
-        SB_bkg_mjj = np.concatenate([SB_bkg_mjj_train, SB_bkg_mjj_val], axis=0)
-        bkg_mjj = np.concatenate([SR_bkg_mjj, SB_bkg_mjj], axis=0)
+        SB_bkg_time_val = SB_bkg_val[:, 0]
+        SB_bkg_time = np.concatenate([SB_bkg_time_train, SB_bkg_time_val], axis=0)
+        bkg_time = np.concatenate([SR_bkg_time, SB_bkg_time], axis=0)
 
         # process signal
         data_dir = os.environ.get("DATA_DIR")
@@ -348,9 +348,9 @@ class PlotMjjDistribution(
         from src.data_prep.signal_processing import process_raw_signals
 
         signal = process_raw_signals(
-            data_path, output_path=None, mx=self.mx, my=self.my
+            data_path, output_path=None, tx=self.tx, ty=self.ty
         )
-        signal_mjj = signal[:, 0]
+        signal_time = signal[:, 0]
 
         # make plot
         from quickstats.plots import VariableDistributionPlot
@@ -358,8 +358,8 @@ class PlotMjjDistribution(
         from matplotlib.backends.backend_pdf import PdfPages
 
         dfs = {
-            "background": pd.DataFrame({"mjj": bkg_mjj}),
-            "signal": pd.DataFrame({"mjj": signal_mjj}),
+            "background": pd.DataFrame({"time": bkg_time}),
+            "signal": pd.DataFrame({"time": signal_time}),
         }
 
         plot_options = {
@@ -386,29 +386,29 @@ class PlotMjjDistribution(
         with PdfPages(output_path) as pdf:
 
             axis = plotter.draw(
-                "mjj",
+                "time",
                 logy=True,
                 normalize=False,
                 bins=np.linspace(
-                    2,
-                    8,
+                    0,
+                    100,
                     151,
                 ),
-                unit="TeV",
+                unit="ms",
                 show_error=False,
                 comparison_options=None,
-                xlabel="mjj",
+                xlabel="time",
             )
 
             plt.axvline(
-                x=3.3,
+                x=40.0,
                 color="black",
                 linestyle="--",
-                label="Signal Region Boundary (3.3 - 3.7 TeV)",
+                label="Signal Region Boundary (40.0 - 60.0 ms)",
             )
 
-            plt.axvline(x=3.7, color="black", linestyle="--")
+            plt.axvline(x=60.0, color="black", linestyle="--")
 
-            plt.xlim(2, 8)
+            plt.xlim(0, 100)
             pdf.savefig(bbox_inches="tight")
             plt.close()
