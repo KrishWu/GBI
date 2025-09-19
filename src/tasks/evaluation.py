@@ -122,7 +122,7 @@ class ScanOverTrueMu(
 
     def requires(self):
         return [
-            FittingScanResults.req(self, s_ratio_index=index)
+            FittingScanResults.req(self)
             for index in self.scan_index
         ]
 

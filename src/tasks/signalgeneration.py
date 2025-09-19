@@ -12,13 +12,13 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
     SigTemplateTrainingUncertaintyMixin,
     ProcessMixin,
-    WScanMixin,
+    
     BkgModelMixin,
 )
 from src.tasks.preprocessing import PreprocessingFold, ProcessBkg, ProcessSignal
@@ -75,22 +75,20 @@ class SignalGeneration(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     BkgModelMixin,
-    WScanMixin,
-    SignalStrengthMixin,
+    
+    
     BaseTask,
 ):
 
-    w_test_index = luigi.IntParameter(default=0)
     device = luigi.Parameter(default="cuda:0")
     num_generated_sigs = luigi.IntParameter(default=1000000)
 
     num_ensembles = luigi.IntParameter(default=5)
 
     def store_parts(self):
-        w_test_value = self.w_range[self.w_test_index]
         return super().store_parts() + (
             f"num_ensembles_{self.num_ensembles}",
-            f"w_test_index_{self.w_test_index}_value_{str_encode_value(w_test_value)}",
+            "all_signals",
         )
 
     def requires(self):
@@ -188,7 +186,7 @@ class SignalGeneration(
 
 class SignalGenerationPlot(
     BkgModelMixin,
-    WScanMixin,
+    
     BaseTask,
 ):
 

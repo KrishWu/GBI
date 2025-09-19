@@ -12,14 +12,14 @@ from src.utils.utils import NumpyEncoder
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    
     ProcessMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
 )
 
 
-class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
+class ProcessSignal( ProcessMixin, BaseTask):
     """Task for processing signal events in R-Anode workflow.
     
     This task implements signal data preprocessing as part of the R-Anode
@@ -127,7 +127,7 @@ class ProcessBkg(BaseTask):
 class PreprocessingFold(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
+    
     ProcessMixin,
     BaseTask,
 ):

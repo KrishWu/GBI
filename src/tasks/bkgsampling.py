@@ -99,18 +99,12 @@ class PreprocessingFoldwModelBGen(
 ):
 
     def requires(self):
-
-        if self.s_ratio != 0:
-            return {
-                "signal": ProcessSignal.req(self),
-                "real_bkg": ProcessBkg.req(self),
-                "gen_bkg": SampleModelBinSR.req(self),
-            }
-        else:
-            return {
-                "real_bkg": ProcessBkg.req(self),
-                "gen_bkg": SampleModelBinSR.req(self),
-            }
+        # Always use signals now (simplified)
+        return {
+            "signal": ProcessSignal.req(self),
+            "real_bkg": ProcessBkg.req(self),
+            "gen_bkg": SampleModelBinSR.req(self),
+        }
 
     def output(self):
         return {
@@ -134,9 +128,8 @@ class PreprocessingFoldwModelBGen(
             preprocess_params_fit,
         )
 
-        # load data
-        if self.s_ratio != 0:
-            SR_signal = np.load(self.input()["signal"]["signals"].path)
+        # load data - always load signals now
+        SR_signal = np.load(self.input()["signal"]["signals"].path)
         SR_bkg = np.load(self.input()["gen_bkg"].path)
 
         # preprocessing parameters are from CR
@@ -209,7 +202,7 @@ class PreprocessingFoldwModelBGen(
         test_bkg_num = (SR_data_test_model_B[:, -1] == 0).sum()
         test_mu = test_sig_num / (test_sig_num + test_bkg_num)
         print("Fold splitting index is: ", self.fold_split_seed)
-        print("true mu: ", self.s_ratio)
+        print("Always using all signals (mu = 1.0)")
         print(
             "trainval mu: ",
             train_mu,

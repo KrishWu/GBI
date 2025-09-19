@@ -44,14 +44,14 @@ law run taskname --version output_postfix --flags XXX
 
 ## Command Line Interface
 
-To get likelihood scanning plot at one signal injection strength, one can run:
+To get likelihood scanning plot, one can run:
 ```
-law run FittingScanResults --version test_0 --ensemble 1 --s-ratio-index 11 --workers 3
+law run FittingScanResults --version test_0 --ensemble 1 --workers 3
 ```
-where --ensemble sets the dataset ensemble used in this scan, and --s-ratio-index represents the index of true signal injection strength. The flag --workers specifies the number of threads used.
+where --ensemble sets the dataset ensemble used in this scan. The flag --workers specifies the number of threads used.
 
 
-To get the likelihood scanning at different signal strengths, with 10 ensembles to smooth the performance, one can run:
+To get the likelihood scanning with 10 ensembles to smooth the performance, one can run:
 ```
 law run ScanOverTrueMuEnsembleAvg --version test_0 --num-ensemble 10 --workers 3
 ```
@@ -66,6 +66,6 @@ law run SignalGenerationPlot --version test_0 --num-ensemble 10 --num-generated-
 
 To run the code on CPU, one can run:
 ```
-law run FittingScanResults --version simplified_test_2 --s-ratio-index 11 --FittingScanResults-device cpu --BkgTemplateTraining-device cpu --BkgTemplateChecking-device cpu --PerfectBkgTemplateTraining-device cpu --RNodeTemplate-device cpu --PredictBkgProb-device cpu --ScanRANODE-device cpu --SampleModelBinSR-device cpu --PredictBkgProbGen-device cpu
+law run FittingScanResults --version simplified_test_2 --FittingScanResults-device cpu --BkgTemplateTraining-device cpu --BkgTemplateChecking-device cpu --PerfectBkgTemplateTraining-device cpu --RNodeTemplate-device cpu --PredictBkgProb-device cpu --ScanRANODE-device cpu --SampleModelBinSR-device cpu --PredictBkgProbGen-device cpu
 ```
 

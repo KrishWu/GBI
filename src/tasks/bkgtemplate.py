@@ -13,7 +13,7 @@ import torch
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    
     TemplateRandomMixin,
     BkgTemplateUncertaintyMixin,
     BkgModelMixin,
@@ -328,7 +328,7 @@ class PerfectBkgTemplateTraining(TemplateRandomMixin, BaseTask):
     early_stopping_patience = luigi.IntParameter(default=20)
 
     def requires(self):
-        return PreprocessingFold.req(self, s_ratio_index=0, use_full_stats=True)
+        return PreprocessingFold.req(self, use_full_stats=True)
 
     def output(self):
         return {
@@ -445,7 +445,7 @@ class PredictBkgProb(
     BkgModelMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
+    
     ProcessMixin,
     BaseTask,
 ):
