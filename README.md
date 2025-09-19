@@ -1,64 +1,71 @@
-This repository contains the code used in the paper ["Generator Based Inference (GBI)"](https://arxiv.org/abs/2506.00119) by Chi Lung Cheng, Ranit Das, Runze Li, Radha Mastandrea, Vinicius Mikuni, Benjamin Nachman, David Shih and Gup Singh.
+# GBI RANODE
 
-## Introduction
-
-This repository contains the code and resources for the paper "Generator Based Inference (GBI)". The work introduces GBI as a general framework for integrating machine learning with statistical inference based on generative models. While Simulation Based Inference (SBI) is a well-known instance where the generator is a physics-based simulator, GBI extends this concept to include scenarios where the generator itself is learned from data. This is particularly relevant for analyses where background models are predominantly data-driven.
-
-The paper specifically demonstrates the power of GBI in the context of resonant anomaly detection. It explores methods where the background generator is learned from sideband data, and then utilized for machine learning-based parameter estimation of potential signals. Two key approaches, R-ANODE (which learns signal and background from data) and an extension of PAWS (a data-simulation hybrid), are investigated. These methods transform the outputs of anomaly detection into directly interpretable results, such as confidence intervals on signal strength and physical parameters, achieving state-of-the-art sensitivity on the LHCO community benchmark dataset.
+This part of the code corresponds to the RANODE section in the paper ["Generator Based Inference (GBI)"](https://arxiv.org/abs/2506.00119) by Chi Lung Cheng, Ranit Das, Runze Li, Radha Mastandrea, Vinicius Mikuni, Benjamin Nachman, David Shih and Gup Singh.
 
 ## Installation
 
-GBI provides both API and CLI interfaces. The code requires python 3.8+ and the following libraries:
-
-```python
-numpy==1.26.2
-matplotlib==3.8.2
-pandas==2.1.3
-awkard==2.6.2
-vector==1.4.0
-aliad==0.2.2.0
-quickstats==0.8.3.5.11
-tensorflow==2.15.0
-```
-
-The dependencies are also available in `requirements.txt` which can be installed via pip. Make sure you install tensorflow with gpu support if you want to train with GPUs.
+The environment requirement for RANODE based inference is available in `environment.yml`, it can be installed by running:
 
 ```
-pip install -r requirements.txt
+conda env create -f environment.yml --prefix /path/gbi_ranode_env
 ```
 
-To setup paws, the simplest way will be to source the setup script:
+To setup the rest of environment variables, run
 
 ```
 source setup.sh
 ```
 
-Alternatively, you may install it via `setup.py`:
-```
-pip install git+https://github.com/hep-lbdl/paws-sbi.git
-```
+During first executation, user will be prompted to enter the input and output directory. The input directory should contain the files listed in the Dataset section.
 
-## Datasets
-
-The data samples used in the paper can be downloaded through Zenodo:
+## Dataset
 
 - Simulated QCD background from official LHCO dataset: https://zenodo.org/records/4536377/files/events_anomalydetection_v2.features.h5
 - Extra simulated QCD background : https://zenodo.org/records/8370758/files/events_anomalydetection_qcd_extra_inneronly_features.h5
-- Parametric W->X(qq)Y(qq) signal : https://zenodo.org/records/11188685/files/events_anomalydetection_Z_XY_qq_parametric.h5
-- Parametric W->X(qq)Y(qqq) signal : https://zenodo.org/records/11188685/files/events_anomalydetection_Z_XY_qqq_parametric.h5
 - Extended parametric W->X(qq)Y(qq) signal : https://zenodo.org/records/15384386/files/events_anomalydetection_extended_Z_XY_qq_parametric.h5
-- Generative QCD background : https://zenodo.org/records/15384501/files/events_anomalydetection_generative_features.h5
+- Signal ensembles with trainvaltest splitting : lumi_matched_train_val_test_split_signal_features_W_qq.h5
+
 
 ## Tutorials
 
-### Command Line Interface
+["Luigi Analysis Workflow (LAW)"](https://github.com/riga/law) is used to construct this project. First, one needs to setup the law task list by running
+```
+conda activate /path/gbi_ranode_env
+source setup.sh
 
-#### Data Preparation
+law index
+```
 
-#### Model Training
+After this different tasks can be run with law by commands like:
 
-#### Evaluation
+```
+law run taskname --version output_postfix --flags XXX
+```
 
-### Jupyter Notebooks
+## Command Line Interface
 
-## Citation
+To get likelihood scanning plot at one signal injection strength, one can run:
+```
+law run FittingScanResults --version test_0 --ensemble 1 --mx 100 --my 500 --s-ratio-index 11 --workers 3
+```
+where --ensemble sets the dataset ensemble used in this scan, --mx and --my specify the mass of signal model, and --s-ratio-index represents the index of true signal injection strength. The flag --workers specifies the number of threads used.
+
+
+To get the likelihood scanning at different signal strengths, with 10 ensembles to smooth the performance, one can run:
+```
+law run ScanOverTrueMuEnsembleAvg --version test_0 --mx 100 --my 500 --num-ensemble 10 --workers 3
+```
+
+To plot the jet mass learned and generated by the model, one can run:
+
+```
+law run SignalGenerationPlot --version test_0 --mx 100 --my 500 --num-ensemble 10 --num-generated-sigs 1000000 --workers 3
+```
+
+## Running on CPU
+
+To run the code on CPU, one can run:
+```
+law run FittingScanResults   --version simplified_test_2 --mx 100 --my 500 --s-ratio-index 11 --FittingScanResults-device cpu --BkgTemplateTraining-device cpu --BkgTemplateChecking-device cpu --PerfectBkgTemplateTraining-device cpu --RNodeTemplate-device cpu --PredictBkgProb-device cpu --ScanRANODE-device cpu --SampleModelBinSR-device cpu --PredictBkgProbGen-device cpu
+```
+
