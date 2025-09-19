@@ -5,7 +5,7 @@ from array import array
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel, RationalQuadratic
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel as C, RationalQuadratic
 from scipy.optimize import fmin_l_bfgs_b
 from src.utils.utils import NumpyEncoder
 from src.utils.utils import find_zero_crossings
@@ -20,6 +20,47 @@ def fit_likelihood(
     output_path,
     logbased=True,
 ):
+    """Fit likelihood function using Gaussian Process regression.
+    
+    This function performs the likelihood fitting step described in the R-Anode
+    paper, using Gaussian Process regression to interpolate between discrete
+    likelihood evaluations and find confidence intervals for signal strength
+    parameters.
+    
+    Parameters
+    ----------
+    x_values : array-like
+        Signal fraction values where likelihood was evaluated (usually log10 scale)
+    y_values_mean : array-like
+        Mean likelihood values at each x_value
+    y_values_std : array-like
+        Standard deviation of likelihood values at each x_value
+    w_true : float
+        True signal fraction value for comparison
+    events_num : int
+        Total number of events, used for confidence interval calculation
+    output_path : str
+        Path for saving the likelihood fit plot
+    logbased : bool, default=True
+        Whether x_values are in log10 scale
+        
+    Returns
+    -------
+    dict
+        Dictionary containing fit results including:
+        - mu_pred: Predicted signal fraction at likelihood maximum
+        - true_mu: True signal fraction value
+        - best_model_index: Index of best-fit model
+        - x_pred, y_pred: Fine-grid predictions from GP
+        - sigma: Uncertainty estimates from GP
+        - CI_95_likelihood: 95% confidence interval threshold
+        - Various raw input arrays
+        
+    Notes
+    -----
+    Uses RBF kernel with constant scale for Gaussian Process regression.
+    Confidence intervals computed using Wilks' theorem with log(2)/N threshold.
+    """
 
     x_values = x_values.reshape(-1, 1)
 
@@ -128,6 +169,42 @@ def bootstrap_and_fit(
     output_dir,
     bootstrap_num=100,
 ):
+    """Perform bootstrap uncertainty estimation and likelihood fitting.
+    
+    This function implements the bootstrap procedure described in the R-Anode
+    paper for estimating uncertainties in the likelihood function. It performs
+    multiple bootstrap samples of the signal models, computes likelihood at
+    each scan point, and fits a Gaussian Process to obtain confidence intervals.
+    
+    Parameters
+    ----------
+    prob_S_list : array-like, shape (num_scan_points, num_models, num_events)
+        Signal probability predictions for different mu values and models
+    prob_B_list : array-like, shape (num_scan_points, num_events)  
+        Background probability predictions for different mu values
+    mu_scan_values : array-like
+        Array of signal fraction values where likelihood was evaluated
+    mu_true : float
+        True signal fraction for comparison and validation
+    output_dir : dict
+        Dictionary containing output file paths for plots and results
+    bootstrap_num : int, default=100
+        Number of bootstrap samples for uncertainty estimation
+        
+    Returns
+    -------
+    None
+        Results are saved to files specified in output_dir
+        
+    Notes
+    -----
+    Implements the R-Anode likelihood construction from Equation (3) in the paper:
+    L = -⟨log pdata(x,m)⟩ where pdata = w*psig + (1-w)*pbg
+    
+    Uses RBF kernel Gaussian Process with L-BFGS-B optimization for robust
+    likelihood surface fitting. Confidence intervals computed using Wilks'
+    theorem with Δlog(L) = log(2)/N for 95% intervals.
+    """
 
     # prob_S_list has shape (num_scan_points, num_models, num_events)
     # prob_B_list has shape (num_scan_points, num_events)
@@ -141,8 +218,6 @@ def bootstrap_and_fit(
         mu_scan_values.reshape(-1, 1) * prob_S_nominal
         + (1 - mu_scan_values.reshape(-1, 1)) * prob_B_nominal
     )
-    # numerical floor to avoid log(0)
-    likelihood_nominal = np.clip(likelihood_nominal, 1e-32, None)
     log_likelihood_nominal = np.log(likelihood_nominal)
     log_likelihood_nominal_mean = log_likelihood_nominal.mean(axis=1)
 
@@ -164,7 +239,6 @@ def bootstrap_and_fit(
             mu_scan_values.reshape(-1, 1) * prob_S_bootstrap_i
             + (1 - mu_scan_values.reshape(-1, 1)) * prob_B_nominal
         )
-        likelihood_bootstrap_i = np.clip(likelihood_bootstrap_i, 1e-32, None)
         log_likelihood_bootstrap_i = np.log(likelihood_bootstrap_i)
         log_likelihood_bootstrap_i_mean = log_likelihood_bootstrap_i.mean(axis=1)
 
@@ -178,17 +252,6 @@ def bootstrap_and_fit(
     x_values = mu_scan_values_log
     y_values = log_likelihood_nominal_mean
 
-    # filter out any non-finite points before GP fit
-    finite_mask = (
-        np.isfinite(x_values)
-        & np.isfinite(y_values)
-        & np.isfinite(log_likelihood_nominal_std)
-    )
-    x_values = x_values[finite_mask]
-    y_values = y_values[finite_mask]
-    log_likelihood_nominal_std = log_likelihood_nominal_std[finite_mask]
-
-    # ensure shapes for GP
     x_values = x_values.reshape(-1, 1)
 
     def custom_optimizer(obj_func, initial_theta, bounds):
@@ -201,19 +264,13 @@ def bootstrap_and_fit(
         return xopt, fopt
     
     # define the kernel
-    kernel = kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(length_scale=0.2, length_scale_bounds=(1e-3, 1e3)) \
-            # + WhiteKernel(noise_level=1e-6, noise_level_bounds=(1e-12, 2e-4))
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=0.2, length_scale_bounds=(1e-3, 1e3))
     # kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RationalQuadratic(length_scale=1.0, alpha=0.5,
     #                                                          length_scale_bounds=(0.1, 10),
     #                                                          alpha_bounds=(1e-4, 1e3))
         #  + WhiteKernel(noise_level=1e-6, noise_level_bounds=(1e-12, 1e-3))
-    # enforce a minimum noise level to avoid zero alpha
-    alpha_vals = np.maximum(log_likelihood_nominal_std**2, 1e-12)
     gp = GaussianProcessRegressor(
-        kernel=kernel,
-        n_restarts_optimizer=100,
-        optimizer=custom_optimizer,
-        alpha=alpha_vals,
+        kernel=kernel, n_restarts_optimizer=100, optimizer=custom_optimizer, alpha=log_likelihood_nominal_std**2
     )
     gp.fit(x_values, y_values)
 

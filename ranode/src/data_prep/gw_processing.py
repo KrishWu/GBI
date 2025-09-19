@@ -3,6 +3,7 @@ Gravitational Wave data processing functions for anomaly detection.
 This module converts time-series GW data to format compatible with existing ML pipeline.
 """
 import numpy as np
+from sklearn.utils import shuffle
 from .gen_data import gen_sig, gen_bg
 
 
@@ -32,10 +33,10 @@ def process_gw_signals():
     The feature mapping preserves the essential structure needed for the
     anomaly detection framework.
     """
-    gw_data = gen_sig()
-    gw_data= np.full((gw_data.shape[0], 1), 1)
-    gw_data = np.hstack((gw_data, gw_data))
-    return gw_data
+    gw_data = gen_sig()  # shape (N, 5): [time, H, L, H+L, H-L]
+    labels = np.ones((gw_data.shape[0], 1), dtype=gw_data.dtype)
+    # Final shape (N, 6): [time, H, L, H+L, H-L, label]
+    return np.hstack((gw_data, labels))
 
 
 def process_gw_backgrounds():
@@ -56,10 +57,10 @@ def process_gw_backgrounds():
     Background events are essential for learning the background density
     p_bg(x,m) in the R-Anode framework, adapted here for GW analysis.
     """
-    gw_data = gen_bg()
-    gw_data= np.full((gw_data.shape[0], 1), 0)
-    gw_data = np.hstack((gw_data, gw_data))
-    return gw_data
+    gw_data = gen_bg()  # shape (N, 5): [time, H, L, H+L, H-L]
+    labels = np.zeros((gw_data.shape[0], 1), dtype=gw_data.dtype)
+    # Final shape (N, 6): [time, H, L, H+L, H-L, label]
+    return np.hstack((gw_data, labels))
 
 
 def gw_background_split(gw_bkg_data, resample_seed=42):
@@ -90,11 +91,11 @@ def gw_background_split(gw_bkg_data, resample_seed=42):
     The signal region split mimics the mass window selection used in
     particle physics searches.
     """
-    np.random.shuffle(gw_bkg_data, random_state=resample_seed)
+    gw_bkg_data = shuffle(gw_bkg_data, random_state=resample_seed)
     
     # Split based on peak amplitude (first feature)
-    time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Top 20% goes to outer_mas
-    time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Bottom 20% goes to outer_mask
+    time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Bottom 20% goes to outer_mas
+    time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Top 20% goes to outer_mask
     
     inner_mask = (time_min < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < time_max)
     outer_mask = ~inner_mask
