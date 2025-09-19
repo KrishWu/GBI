@@ -60,15 +60,14 @@ class ProcessAllSignals(BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
-
-        data_path = f"{data_dir}/events_anomalydetection_extended_Z_XY_qq_parametric.h5"
-
-        from src.data_prep.signal_processing import process_raw_signals
+        from src.data_prep.gw_processing import process_gw_signals
 
         self.output()["signals"].parent.touch()
         output_path = self.output()["signals"].path
-        process_raw_signals(data_path, output_path)
+        
+        # Generate gravitational wave signals and save
+        signals = process_gw_signals()
+        np.save(output_path, signals)
 
 
 class SignalGeneration(
