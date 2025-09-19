@@ -249,7 +249,7 @@ class SignalGenerationPlot(
 
     @law.decorator.safe_output
     def run(self):
-        feature_list = ["mjj", "mjmin", "mjmax - mjmin", "tau21min", "tau21max"]
+        feature_list = ["time", "h_strain", "l_strain", "h_l_sum", "h_l_diff"]
 
         conversion = {
             0: 0.0,
