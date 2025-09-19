@@ -13,7 +13,6 @@ import torch
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
     TemplateRandomMixin,
     BkgTemplateUncertaintyMixin,
     BkgModelMixin,
@@ -95,7 +94,6 @@ class SampleModelBinSR(
 class PreprocessingFoldwModelBGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -161,18 +159,15 @@ class PreprocessingFoldwModelBGen(
 
         # ----------------------- make SR data -----------------------
 
-        # concatenate signal and bkg
-        if self.s_ratio != 0:
-            # process signals only since bkgs have already been processed
-            _, mask = logit_transform(
-                SR_signal[:, 1:-1], pre_parameters["min"], pre_parameters["max"]
-            )
-            SR_signal = SR_signal[mask]
-            SR_signal = preprocess_params_transform(SR_signal, pre_parameters)
+        # always add all signals to background (no signal fraction)
+        # process signals only since bkgs have already been processed
+        _, mask = logit_transform(
+            SR_signal[:, 1:-1], pre_parameters["min"], pre_parameters["max"]
+        )
+        SR_signal = SR_signal[mask]
+        SR_signal = preprocess_params_transform(SR_signal, pre_parameters)
 
-            SR_data = np.concatenate([SR_signal, SR_bkg], axis=0)
-        else:
-            SR_data = SR_bkg
+        SR_data = np.concatenate([SR_signal, SR_bkg], axis=0)
 
         # split into trainval and test set
         from src.data_prep.utils import fold_splitting
@@ -236,7 +231,6 @@ class PreprocessingFoldwModelBGen(
 class PredictBkgProbGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):

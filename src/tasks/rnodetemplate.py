@@ -8,13 +8,11 @@ import json
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
     SigTemplateTrainingUncertaintyMixin,
     ProcessMixin,
-    WScanMixin,
     BkgModelMixin,
 )
 from src.tasks.preprocessing import PreprocessingFold
@@ -28,7 +26,6 @@ class RNodeTemplate(
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
     BkgModelMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -51,28 +48,24 @@ class RNodeTemplate(
         Batch size for training
     epoches : luigi.IntParameter, default=50
         Number of training epochs
-    w_value : luigi.FloatParameter, default=0.05
-        Signal fraction value for this training point
     early_stopping_patience : luigi.IntParameter, default=10
         Patience for early stopping
         
     Notes
     -----
     Inherits from multiple mixins providing fold splitting, template
-    uncertainty, background model configuration, and signal strength
-    management. Central to the R-Anode methodology for residual signal
-    density estimation.
+    uncertainty, background model configuration. Central to the R-Anode 
+    methodology for residual signal density estimation.
+    Now uses all available signals (no signal fraction control).
     """
 
     device = luigi.Parameter(default="cuda:0")
     batchsize = luigi.IntParameter(default=2048)
     epoches = luigi.IntParameter(default=50)
-    w_value = luigi.FloatParameter(default=0.05)
     early_stopping_patience = luigi.IntParameter(default=10)
 
     def store_parts(self):
-        w_value = str_encode_value(self.w_value)
-        return super().store_parts() + (f"w_{w_value}",)
+        return super().store_parts() + ("all_signals",)
 
     def requires(self):
 
@@ -114,15 +107,15 @@ class RNodeTemplate(
         }
 
         print(
-            f"train model S with train random seed {self.train_random_seed}, sample fold {self.fold_split_seed}, s_ratio {self.s_ratio}"
+            f"train model S with train random seed {self.train_random_seed}, sample fold {self.fold_split_seed}"
         )
         from src.models.train_model_S import train_model_S
 
         train_model_S(
             input_dict,
             self.output(),
-            self.s_ratio,
-            self.w_value,
+            1.0,  # Fixed: use all signals (s_ratio = 1.0)
+            1.0,  # Fixed: use all signals (w_value = 1.0)
             self.batchsize,
             self.epoches,
             self.early_stopping_patience,
@@ -136,25 +129,24 @@ class ScanRANODEFixedSeed(
     SigTemplateTrainingUncertaintyMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    WScanMixin,
     BkgModelMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
+    """Simplified R-Anode model training without signal fraction scanning.
+    
+    Trains a single R-Anode model using all available signals mixed with background.
+    No longer scans over different signal fractions.
+    """
 
     def requires(self):
-
-        model_list = {}
-
-        for index in range(self.scan_number):
-            model_list[f"model_{index}"] = RNodeTemplate.req(
+        # Just train one model with all signals
+        return {
+            "model": RNodeTemplate.req(
                 self,
-                w_value=self.w_range[index],
                 train_random_seed=self.train_random_seed,
             )
-
-        return model_list
+        }
 
     def output(self):
         return {
@@ -163,32 +155,13 @@ class ScanRANODEFixedSeed(
 
     @law.decorator.safe_output
     def run(self):
-
-        val_loss_scan = []
-        model_path_list_scan = {}
-
-        for index_w in range(self.scan_number):
-            print(self.input()[f"model_{index_w}"]["metadata"].path)
-            # save min val loss
-            metadata_w = self.input()[f"model_{index_w}"]["metadata"].load()
-            min_val_loss = metadata_w["min_val_loss_list"]
-            val_events_num = metadata_w["num_val_events"]
-
-            # save model paths
-            model_path = [self.input()[f"model_{index_w}"]["sig_model"].path]
-
-            val_loss_scan.append(min_val_loss)
-            model_path_list_scan[f"scan_index_{index_w}"] = model_path
-
-        val_loss_scan = np.array(val_loss_scan)
-        val_loss_scan = -1 * val_loss_scan.flatten()
-
-        print(self.w_range)
-        print(val_loss_scan)
+        # Simplified: just save the single model path
+        model_path = [self.input()["model"]["sig_model"].path]
+        model_path_list = {"scan_index_0": model_path}
 
         self.output()["model_list"].parent.touch()
         with open(self.output()["model_list"].path, "w") as f:
-            json.dump(model_path_list_scan, f, cls=NumpyEncoder)
+            json.dump(model_path_list, f, cls=NumpyEncoder)
 
 
 class ScanRANODE(
@@ -196,22 +169,13 @@ class ScanRANODE(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     BkgModelMixin,
-    WScanMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
-    """Task for performing R-Anode signal fraction scanning.
+    """Task for performing R-Anode model evaluation.
     
-    This task implements the signal fraction scanning procedure described
-    in Section IV.B of the R-Anode paper. It coordinates multiple R-Anode
-    signal model evaluations across a range of signal fraction (w) values
-    to construct the likelihood surface for signal strength estimation.
-    
-    The task combines predictions from multiple trained signal models
-    (for ensemble uncertainty) and evaluates them at different w values
-    to generate the data needed for likelihood fitting and confidence
-    interval calculation.
+    Simplified version that trains and evaluates R-Anode models without
+    signal fraction scanning. All signals are mixed with background.
     
     Attributes
     ----------
@@ -220,16 +184,13 @@ class ScanRANODE(
         
     Notes
     -----
-    Central to the R-Anode methodology for signal strength estimation.
-    Coordinates signal and background model evaluation across the w
-    scan range to construct the likelihood surface L(w) used for
-    statistical inference as described in the paper.
+    Central to the R-Anode methodology but simplified to use all signals
+    without scanning over different signal fractions.
     """
 
     device = luigi.Parameter(default="cuda")
 
     def requires(self):
-
         model_results = {}
 
         for index in range(self.train_num_sig_templates):
@@ -258,54 +219,46 @@ class ScanRANODE(
 
     @law.decorator.safe_output
     def run(self):
-
         from src.models.ranode_pred import ranode_pred
 
         prob_S_list = []
 
-        # for each w test value
-        for w_index in range(self.scan_number):
+        # Simplified: evaluate single model (no scanning)
+        print("Evaluating R-Anode model with all signals")
 
-            prob_S_list_w = []
+        # for each random seed, load the model, evaluate the model on test data, and save the prob_S
+        for index in range(self.train_num_sig_templates):
+            # data path
+            test_data_path = self.input()["data"]
 
-            w_value = self.w_range[w_index]
-            print(f" - evaluating scan index {w_index}, w value {w_value}")
+            # prob B path
+            bkg_prob_test_path = self.input()["bkgprob"]["log_B_test"]
 
-            # for each random seed, load the model, evaluate the model on test data, and save the prob_S
-            for index in range(self.train_num_sig_templates):
+            # model list
+            model_list_path = self.input()["model_S_scan_result"][
+                f"model_seed_{index}"
+            ]["model_list"].path
 
-                # data path
-                test_data_path = self.input()["data"]
+            print(model_list_path)
+            with open(model_list_path, "r") as f:
+                model_scan_dict = json.load(f)
 
-                # prob B path
-                bkg_prob_test_path = self.input()["bkgprob"]["log_B_test"]
+            model_list = model_scan_dict["scan_index_0"]  # Use the single model
 
-                # model list
-                model_list_path = self.input()["model_S_scan_result"][
-                    f"model_seed_{index}"
-                ]["model_list"].path
+            prob_S, prob_B = ranode_pred(
+                model_list, test_data_path, bkg_prob_test_path, device=self.device
+            )
 
-                print(model_list_path)
-                with open(model_list_path, "r") as f:
-                    model_scan_dict = json.load(f)
+            # prob_S shape is (num_models, num_samples), prob_B shape is (num_samples,)
+            if len(prob_S_list) == 0:
+                prob_S_list = prob_S
+            else:
+                prob_S_list = np.concatenate([prob_S_list, prob_S], axis=0)
 
-                model_list = model_scan_dict[f"scan_index_{w_index}"]
-
-                prob_S, prob_B = ranode_pred(
-                    model_list, test_data_path, bkg_prob_test_path, device=self.device
-                )
-
-                # prob_S shape is (num_models, num_samples), prob_B shape is (num_samples,)
-                if len(prob_S_list_w) == 0:
-                    prob_S_list_w = prob_S
-                else:
-                    prob_S_list_w = np.concatenate([prob_S_list_w, prob_S], axis=0)
-
-            prob_S_list.append(prob_S_list_w)
-
-        prob_S_list = np.array(prob_S_list)
-        prob_B_list = prob_B
+        # Create single-point "scan" for compatibility with downstream tasks
+        prob_S_scan = np.array([prob_S_list])  # Shape: (1, num_models, num_samples)
+        prob_B_scan = prob_B
 
         self.output()["prob_S_scan"].parent.touch()
-        np.save(self.output()["prob_S_scan"].path, prob_S_list)
-        np.save(self.output()["prob_B_scan"].path, prob_B_list)
+        np.save(self.output()["prob_S_scan"].path, prob_S_scan)
+        np.save(self.output()["prob_B_scan"].path, prob_B_scan)

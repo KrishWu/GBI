@@ -115,57 +115,6 @@ class ProcessMixin:
         )
 
 
-class SignalStrengthMixin:
-    """Mixin class for managing signal strength parameters in R-Anode analysis.
-    
-    This mixin provides signal-to-background ratio management for the R-Anode
-    method. It uses predefined conversion tables to map indices to specific
-    S/(S+B) ratios, allowing systematic studies of signal strength dependence.
-    
-    Attributes
-    ----------
-    s_ratio_index : luigi.IntParameter, default=8
-        Index into the predefined signal ratio conversion table
-    """
-
-    # S/(S+B) ratio
-    s_ratio_index = luigi.IntParameter(default=8)
-
-    @property
-    def s_ratio(self):
-        """Convert signal ratio index to actual S/(S+B) ratio value.
-        
-        Returns
-        -------
-        float
-            Signal-to-background ratio corresponding to the index
-        """
-        conversion = {
-            0: 0.0,
-            1: 0.0001025915,
-            2: 0.0001801174,
-            3: 0.00031622776601683794,
-            4: 0.0005551935914386209,
-            5: 0.0009747402255566064,
-            6: 0.001711328304161781,
-            7: 0.0030045385302046933,
-            8: 0.00527499706370262,
-            9: 0.009261187281287938,
-            10: 0.01625964693881482,
-            # 11: 0.02854667663497933,
-            11: 0.10,
-            12: 0.05011872336272722,
-        }
-
-        return conversion[self.s_ratio_index]
-
-    def store_parts(self):
-        round_s_ratio = np.round(self.s_ratio, 6)
-        return super().store_parts() + (
-            f"s_index_{self.s_ratio_index}_ratio_{str_encode_value(round_s_ratio)}",
-        )
-
-
 class TemplateRandomMixin:
     """Mixin class for controlling randomness in template training.
     
@@ -296,48 +245,3 @@ class SigTemplateTrainingUncertaintyMixin:
         )
 
 
-class WScanMixin:
-    """Mixin class for signal fraction (w) scanning in R-Anode analysis.
-    
-    This mixin implements the signal fraction scanning functionality described
-    in Section IV.B of the R-Anode paper, allowing systematic studies of
-    performance as a function of the assumed signal fraction w.
-    
-    Attributes
-    ----------
-    w_min : luigi.FloatParameter, default=1e-5
-        Minimum signal fraction for scanning
-    w_max : luigi.FloatParameter, default=0.1
-        Maximum signal fraction for scanning  
-    scan_number : luigi.IntParameter, default=5
-        Number of scan points in the w range
-    """
-
-    w_min = luigi.FloatParameter(default=1e-5)
-    w_max = luigi.FloatParameter(default=0.1)
-    scan_number = luigi.IntParameter(default=10)
-
-    def store_parts(self):
-        return super().store_parts() + (
-            f"w_min_{str_encode_value(self.w_min)}_w_max_{str_encode_value(self.w_max)}_scan_{self.scan_number}",
-        )
-
-    @property
-    def w_range(self):
-        """Generate logarithmically spaced signal fraction values for scanning.
-        
-        Creates a logarithmic grid of signal fraction values between w_min
-        and w_max, as used in the R-Anode paper for robustness studies.
-        
-        Returns
-        -------
-        numpy.ndarray
-            Array of signal fraction values for scanning, rounded to 6 decimals
-        """
-        w_range = np.logspace(
-            np.log10(self.w_min), np.log10(self.w_max), self.scan_number
-        )
-
-        # round to 6 decimal places
-        w_range = np.round(w_range, 6)
-        return w_range
