@@ -36,35 +36,21 @@ class ProcessAllSignals(BaseTask):
     """Task for processing signal events for R-Anode analysis.
     
     This task handles the processing of gravitational wave signal events 
-    into the standardized format used by R-Anode. It extracts
-    events for specific time parameters (tx, ty) and prepares them for use
-    in the analysis pipeline.
+    into the standardized format used by R-Anode. It processes signals
+    using fixed gravitational wave parameters for use in the analysis pipeline.
     
     The processed signals are used for signal injection studies and
-    performance evaluation of the R-Anode methodology across different
-    signal hypotheses.
-    
-    Attributes
-    ----------
-    tx : luigi.IntParameter, default=100
-        Time parameter X in milliseconds
-    ty : luigi.IntParameter, default=500
-        Time parameter Y in milliseconds
+    performance evaluation of the R-Anode methodology for gravitational
+    wave anomaly detection.
         
     Notes
     -----
-    Processes gravitational wave signals from the dataset for the
-    specified time point configuration. Essential for creating the
-    signal samples used in R-Anode sensitivity studies.
+    Processes gravitational wave signals using fixed signal characteristics.
+    Essential for creating the signal samples used in R-Anode sensitivity studies.
     """
-
-    tx = luigi.IntParameter(default=100)
-    ty = luigi.IntParameter(default=500)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"tx_{self.tx}",
-            f"ty_{self.ty}",
         )
 
     def output(self):
@@ -82,7 +68,7 @@ class ProcessAllSignals(BaseTask):
 
         self.output()["signals"].parent.touch()
         output_path = self.output()["signals"].path
-        process_raw_signals(data_path, output_path, self.tx, self.ty)
+        process_raw_signals(data_path, output_path)
 
 
 class SignalGeneration(
@@ -99,16 +85,11 @@ class SignalGeneration(
     device = luigi.Parameter(default="cuda:0")
     num_generated_sigs = luigi.IntParameter(default=1000000)
 
-    tx = luigi.IntParameter(default=100)
-    ty = luigi.IntParameter(default=500)
-
     num_ensembles = luigi.IntParameter(default=5)
 
     def store_parts(self):
         w_test_value = self.w_range[self.w_test_index]
         return super().store_parts() + (
-            f"tx_{self.tx}",
-            f"ty_{self.ty}",
             f"num_ensembles_{self.num_ensembles}",
             f"w_test_index_{self.w_test_index}_value_{str_encode_value(w_test_value)}",
         )
@@ -214,14 +195,10 @@ class SignalGenerationPlot(
 
     num_generated_sigs = luigi.IntParameter(default=1000000)
 
-    tx = luigi.IntParameter(default=100)
-    ty = luigi.IntParameter(default=500)
     num_ensembles = luigi.IntParameter(default=10)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"tx_{self.tx}",
-            f"ty_{self.ty}",
             f"num_ensembles_{self.num_ensembles}",
         )
 
@@ -420,8 +397,6 @@ class SignalGenerationPlot(
         }
 
         metadata = {
-            "tx": self.tx,
-            "ty": self.ty,
             "numB": len(bkg_df),
             "use_full_stats": self.use_full_stats,
             "use_perfect_modelB": self.use_perfect_bkg_model,

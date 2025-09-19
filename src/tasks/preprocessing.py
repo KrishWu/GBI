@@ -348,7 +348,7 @@ class PlotMjjDistribution(
         from src.data_prep.signal_processing import process_raw_signals
 
         signal = process_raw_signals(
-            data_path, output_path=None, tx=self.tx, ty=self.ty
+            data_path, output_path=None
         )
         signal_time = signal[:, 0]
 

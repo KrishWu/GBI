@@ -96,31 +96,21 @@ class BaseTask(law.Task):
 
 
 class ProcessMixin:
-    """Mixin class for tasks involving signal mass point processing.
+    """Mixin class for tasks involving signal processing.
     
-    This mixin provides parameters for defining the time points of the
-    signal hypothesis in the R-Anode analysis. It handles the two-dimensional
-    time parameter space (tx, ty) used in gravitational wave signal models.
+    This mixin provides parameters for the R-Anode analysis using
+    gravitational wave signals with fixed characteristics.
     
     Attributes
     ----------
-    tx : luigi.IntParameter, default=100
-        Time parameter X in milliseconds
-    ty : luigi.IntParameter, default=500  
-        Time parameter Y in milliseconds
     ensemble : luigi.IntParameter, default=1
         Ensemble index for statistical uncertainty estimation
     """
-
-    tx = luigi.IntParameter(default=100)
-    ty = luigi.IntParameter(default=500)
 
     ensemble = luigi.IntParameter(default=1)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"tx_{self.tx}",
-            f"ty_{self.ty}",
             f"ensemble_{self.ensemble}",
         )
 
