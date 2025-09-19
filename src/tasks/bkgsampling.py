@@ -45,10 +45,10 @@ class SampleModelBinSR(
     def run(self):
         # load SR real bkgs
         SR_bkg_data = np.load(self.input()["bkg_data"]["SR_bkg"].path)
-        # load mass in the first column
-        mass_bkg_data = SR_bkg_data[:, 0]
-        mass_bkg_data = (
-            torch.from_numpy(mass_bkg_data)
+        # load time in the first column
+        time_bkg_data = SR_bkg_data[:, 0]
+        time_bkg_data = (
+            torch.from_numpy(time_bkg_data)
             .reshape((-1, 1))
             .type(torch.FloatTensor)
             .to(self.device)
@@ -73,14 +73,14 @@ class SampleModelBinSR(
         with torch.no_grad():
             sampled_SR_events = model_B.model.sample(
                 num_samples=SR_bkg_data.shape[0],
-                cond_inputs=mass_bkg_data,
+                cond_inputs=time_bkg_data,
             )
 
         sampled_SR_events = sampled_SR_events.cpu().numpy()
 
-        # add mass column
+        # add time column
         sampled_SR_events = np.concatenate(
-            (mass_bkg_data.cpu().numpy(), sampled_SR_events), axis=1
+            (time_bkg_data.cpu().numpy(), sampled_SR_events), axis=1
         )
         # add last column of 0 for bkg
         sampled_SR_events = np.concatenate(
@@ -124,7 +124,7 @@ class PreprocessingFoldwModelBGen(
                 "data_SR_data_trainval_model_B.npy"
             ),
             "SR_data_test_model_B": self.local_target("data_SR_data_test_model_B.npy"),
-            "SR_mass_hist": self.local_target("SR_mass_hist.json"),
+            "SR_time_hist": self.local_target("SR_time_hist.json"),
         }
 
     @law.decorator.safe_output
@@ -148,15 +148,15 @@ class PreprocessingFoldwModelBGen(
         for key in pre_parameters.keys():
             pre_parameters[key] = np.array(pre_parameters[key])
 
-        # ----------------------- mass hist in SR -----------------------
+        # ----------------------- time hist in SR -----------------------
         from config.configs import SR_MIN, SR_MAX
 
-        mass = SR_bkg[SR_bkg[:, -1] == 0, 0]
+        time = SR_bkg[SR_bkg[:, -1] == 0, 0]
         bins = np.linspace(SR_MIN, SR_MAX, 50)
-        hist_back = np.histogram(mass, bins=bins, density=True)
-        # save mass histogram and bins
-        self.output()["SR_mass_hist"].parent.touch()
-        with open(self.output()["SR_mass_hist"].path, "w") as f:
+        hist_back = np.histogram(time, bins=bins, density=True)
+        # save time histogram and bins
+        self.output()["SR_time_hist"].parent.touch()
+        with open(self.output()["SR_time_hist"].path, "w") as f:
             json.dump({"hist": hist_back[0], "bins": hist_back[1]}, f, cls=NumpyEncoder)
 
         # ----------------------- make SR data -----------------------

@@ -100,8 +100,8 @@ def plot_mu_scan_results(
     }
 
     # -------------------- making plots --------------------
-    mx = metadata["mx"]
-    my = metadata["my"]
+    tx = metadata["tx"]
+    ty = metadata["ty"]
     num_B = metadata["num_B"]
     use_full_stats = metadata["use_full_stats"]
     use_perfect_bkg_model = metadata["use_perfect_modelB"]
@@ -116,7 +116,7 @@ def plot_mu_scan_results(
     if use_bkg_model_gen_data:
         text += ", use model B to generate bkgs in data"
 
-    text += f"//Signal at $(m_X, m_Y) = ({mx}, {my})$ GeV"
+    text += f"//Signal at $(t_X, t_Y) = ({tx}, {ty})$ ms"
 
     xticks = [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 5e-2]
     xticklabels = ["0.01", "0.02", "0.05", "0.1", "0.2", "0.5", "1", "5"]
@@ -222,8 +222,8 @@ def plot_mu_scan_results_multimodels(
     }
 
     # -------------------- making plots --------------------
-    mx = metadata["mx"]
-    my = metadata["my"]
+    tx = metadata["tx"]
+    ty = metadata["ty"]
     num_B = metadata["num_B"]
     use_full_stats = metadata["use_full_stats"]
     num_ensemble = metadata["num_ensemble"]
@@ -234,7 +234,7 @@ def plot_mu_scan_results_multimodels(
     # else:
     #     text = f"Lumi matched, {num_ensemble} ensembles"
 
-    # text += f"//Signal at $(m_X, m_Y) = ({mx}, {my})$ GeV"
+    # text += f"//Signal at $(t_X, t_Y) = ({tx}, {ty})$ ms"
 
     xticks = [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 5e-2]
     xticklabels = ["0.01", "0.02", "0.05", "0.1", "0.2", "0.5", "1", "5"]
@@ -303,15 +303,15 @@ def plot_mu_scan_results_multimodels(
 
 def plot_event_feature_distribution(dfs, misc, plot_options, output_path):
 
-    mx = misc["mx"]
-    my = misc["my"]
+    tx = misc["tx"]
+    ty = misc["ty"]
     numB = misc["numB"]
     use_full_stats = misc["use_full_stats"]
     use_perfect_modelB = misc["use_perfect_modelB"]
     use_modelB_genData = misc["use_modelB_genData"]
     columns = misc["columns"]
 
-    # text = f"Signal at ({mx}, {my}) GeV \nmu_true = {mu_true}%, significance = {sig_significance}, mu_test = {mu_test}%"
+    # text = f"Signal at ({tx}, {ty}) ms \nmu_true = {mu_true}%, significance = {sig_significance}, mu_test = {mu_test}%"
     # if use_full_stats:
     #     text += "\n full stats"
     # else:
@@ -454,48 +454,3 @@ def plot_mu_scan_results_multimass(
     plt.close()
 
 
-def plot_event_feature_distribution(dfs, misc, plot_options, output_path):
-
-    mx = misc["mx"]
-    my = misc["my"]
-    numB = misc["numB"]
-    use_full_stats = misc["use_full_stats"]
-    use_perfect_modelB = misc["use_perfect_modelB"]
-    use_modelB_genData = misc["use_modelB_genData"]
-    columns = misc["columns"]
-
-    # text = f"Signal at ({mx}, {my}) GeV \nmu_true = {mu_true}%, significance = {sig_significance}, mu_test = {mu_test}%"
-    # if use_full_stats:
-    #     text += "\n full stats"
-    # else:
-    #     text += "\n lumi matched"
-
-    # if use_perfect_modelB:
-    #     text += ", model B trained in SR"
-    # if use_modelB_genData:
-    #     text += ", use model B to generate bkgs in data"
-    # if not use_modelB_genData and not use_perfect_modelB:
-    #     text += ", model B trained in CR"
-
-    plotter = VariableDistributionPlot(dfs, plot_options=plot_options)
-    # plotter.add_text(text, 0.05, 0.95, fontsize=18)
-
-    with PdfPages(output_path) as pdf:
-        for feature in columns:
-            plotter.draw(
-                feature,
-                logy=False,
-                bins=np.linspace(
-                    dfs["Background"][feature].min(),
-                    dfs["Background"][feature].max(),
-                    101,
-                ),
-                unit="GeV",
-                show_error=False,
-                comparison_options=None,
-                xlabel=feature,
-            )
-            # axis.set_title(f"{feature} distribution", fontsize=18)
-            # axis.set_ylim(0, 0.25)
-            pdf.savefig(bbox_inches="tight")
-            plt.close()
