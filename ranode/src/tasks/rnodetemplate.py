@@ -8,7 +8,7 @@ import json
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
@@ -138,7 +138,7 @@ class ScanRANODEFixedSeed(
     FoldSplitUncertaintyMixin,
     WScanMixin,
     BkgModelMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -197,7 +197,7 @@ class ScanRANODE(
     FoldSplitUncertaintyMixin,
     BkgModelMixin,
     WScanMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):

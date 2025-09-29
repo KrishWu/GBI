@@ -12,7 +12,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
@@ -76,7 +76,7 @@ class SignalGeneration(
     FoldSplitUncertaintyMixin,
     BkgModelMixin,
     WScanMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     BaseTask,
 ):
 
