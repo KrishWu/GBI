@@ -11,7 +11,7 @@ import matplotlib.ticker as mticker
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
