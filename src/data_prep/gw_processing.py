@@ -7,13 +7,18 @@ from sklearn.utils import shuffle
 from .gen_data import gen_sig, gen_bg
 
 
-def process_gw_signals():
+def process_gw_signals(amplitude=100.0):
     """Generate and process gravitational wave signal events for R-Anode analysis.
     
     This function adapts gravitational wave time-series data to be compatible
     with the R-Anode ML pipeline by extracting physics-motivated features
     from the GW strain data that can serve as analogs to particle physics
     observables.
+    
+    Parameters
+    ----------
+    amplitude : float, default=100.0
+        Signal amplitude scaling factor for sensitivity studies
     
     Returns
     -------
@@ -33,7 +38,7 @@ def process_gw_signals():
     The feature mapping preserves the essential structure needed for the
     anomaly detection framework.
     """
-    gw_data = gen_sig()  # shape (N, 5): [time, H, L, H+L, H-L]
+    gw_data = gen_sig(amplitude)  # shape (N, 5): [time, H, L, H+L, H-L]
     labels = np.ones((gw_data.shape[0], 1), dtype=gw_data.dtype)
     # Final shape (N, 6): [time, H, L, H+L, H-L, label]
     return np.hstack((gw_data, labels))
