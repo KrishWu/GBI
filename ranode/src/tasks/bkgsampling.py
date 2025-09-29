@@ -13,7 +13,7 @@ import torch
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     TemplateRandomMixin,
     BkgTemplateUncertaintyMixin,
     BkgModelMixin,
@@ -95,7 +95,7 @@ class SampleModelBinSR(
 class PreprocessingFoldwModelBGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -126,6 +126,46 @@ class PreprocessingFoldwModelBGen(
             "SR_data_test_model_B": self.local_target("data_SR_data_test_model_B.npy"),
             "SR_time_hist": self.local_target("SR_time_hist.json"),
         }
+
+    def _combine_gw_data_by_time(self, signal_data, background_data, amplitude_scale):
+        """Combine gravitational wave signal and background data by matching timestamps.
+        
+        Instead of concatenating events, this method combines strain measurements
+        at corresponding time points, scaling the signal by the amplitude factor.
+        
+        Parameters
+        ----------
+        signal_data : numpy.ndarray, shape (n_events, n_features)
+            Signal data with columns [time, H_strain, L_strain, H+L, H-L, label]
+        background_data : numpy.ndarray, shape (n_events, n_features)  
+            Background data with same structure as signal_data
+        amplitude_scale : float
+            Amplitude scaling factor to apply to signal strains
+            
+        Returns
+        -------
+        numpy.ndarray, shape (n_events, n_features)
+            Combined data with signal strains added to background at matching times
+        """
+        # Extract time columns
+        signal_times = signal_data[:, 0]
+        background_times = background_data[:, 0]
+        
+        # Find overlapping time points (should be identical for GW data)
+        combined_data = background_data.copy()
+        
+        # For each background time point, find matching signal time point
+        for i, bg_time in enumerate(background_times):
+            # Find closest signal time (should be exact match for synthetic data)
+            time_diffs = np.abs(signal_times - bg_time)
+            closest_signal_idx = np.argmin(time_diffs)
+            
+            if time_diffs[closest_signal_idx] < 1e-6:  # Close enough to be same time
+                # Add scaled signal strains to background strains (columns 1-4: H, L, H+L, H-L)
+                combined_data[i, 1:5] += amplitude_scale * signal_data[closest_signal_idx, 1:5]
+                # Keep background label (should be 0 for background)
+        
+        return combined_data
 
     @law.decorator.safe_output
     def run(self):
@@ -161,7 +201,7 @@ class PreprocessingFoldwModelBGen(
 
         # ----------------------- make SR data -----------------------
 
-        # concatenate signal and bkg
+        # combine signal and background at matching timestamps
         if self.s_ratio != 0:
             # process signals only since bkgs have already been processed
             _, mask = logit_transform(
@@ -170,7 +210,8 @@ class PreprocessingFoldwModelBGen(
             SR_signal = SR_signal[mask]
             SR_signal = preprocess_params_transform(SR_signal, pre_parameters)
 
-            SR_data = np.concatenate([SR_signal, SR_bkg], axis=0)
+            # Time-based combination: merge strain values at matching timestamps
+            SR_data = self._combine_gw_data_by_time(SR_signal, SR_bkg, self.s_ratio)
         else:
             SR_data = SR_bkg
 

@@ -12,21 +12,21 @@ from src.utils.utils import NumpyEncoder
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
 )
 
 
-class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
+class ProcessSignal(AmplitudeStrengthMixin, ProcessMixin, BaseTask):
     """Task for processing signal events in R-Anode workflow.
     
     This task implements signal data preprocessing as part of the R-Anode
     workflow pipeline. It handles signal event format standardization,
     feature extraction, and preparation for density model training.
     
-    Inherits from SignalStrengthMixin for signal ratio management,
+    Inherits from AmplitudeStrengthMixin for amplitude ratio management,
     ProcessMixin for mass point configuration, and BaseTask for
     common workflow functionality.
     
@@ -45,7 +45,7 @@ class ProcessSignal(SignalStrengthMixin, ProcessMixin, BaseTask):
     def run(self):
         from src.data_prep.gw_processing import process_gw_signals
 
-        sig = process_gw_signals()
+        sig = process_gw_signals(amplitude=self.s_ratio)
         # ensure directory exists
         self.output()["signals"].parent.touch()
         np.save(self.output()["signals"].path, sig)
@@ -127,7 +127,7 @@ class ProcessBkg(BaseTask):
 class PreprocessingFold(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -343,7 +343,7 @@ class PlotMjjDistribution(
         # process signal
         from src.data_prep.gw_processing import process_gw_signals
 
-        signal = process_gw_signals()
+        signal = process_gw_signals(amplitude=100.0)  # Use default amplitude for plotting
         signal_time = signal[:, 0]
 
         # make plot
