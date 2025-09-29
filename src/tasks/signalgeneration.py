@@ -66,7 +66,7 @@ class ProcessAllSignals(BaseTask):
         output_path = self.output()["signals"].path
         
         # Generate gravitational wave signals and save
-        signals = process_gw_signals()
+        signals = process_gw_signals(amplitude=100.0)  # Use default amplitude
         np.save(output_path, signals)
 
 
