@@ -5,6 +5,7 @@ This module converts time-series GW data to format compatible with existing ML p
 import numpy as np
 from sklearn.utils import shuffle
 from .gen_data import gen_sig, gen_bg
+import config.configs as config
 
 
 def process_gw_signals(amplitude=100.0):
@@ -98,11 +99,12 @@ def gw_background_split(gw_bkg_data, resample_seed=42):
     """
     gw_bkg_data = shuffle(gw_bkg_data, random_state=resample_seed)
     
-    # Split based on peak amplitude (first feature)
-    time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Bottom 20% goes to outer_mas
-    time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Top 20% goes to outer_mask
+    # # Split based on peak amplitude (first feature)
+    # time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Bottom 20% goes to outer_mas
+    # time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Top 20% goes to outer_mask
     
-    inner_mask = (time_min < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < time_max)
+    # inner_mask = (time_min < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < time_max)
+    inner_mask = (config.SR_MIN < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < config.SR_MAX)
     outer_mask = ~inner_mask
     
     inner_bkg = gw_bkg_data[inner_mask]
