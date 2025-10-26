@@ -8,5 +8,5 @@ time windows where gravitational wave signals might occur.
 
 # Signal region boundaries in milliseconds  
 # Based on gravitational wave detection time windows
-SR_MIN = 40.0  # ms - Lower bound of signal region
-SR_MAX = 60.0  # ms - Upper bound of signal region
+SR_MIN = 20.0  # ms - Lower bound of signal region
+SR_MAX = 80.0  # ms - Upper bound of signal region

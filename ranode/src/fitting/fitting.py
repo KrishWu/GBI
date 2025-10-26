@@ -24,7 +24,7 @@ def fit_likelihood(
     x_values = x_values.reshape(-1, 1)
 
     # define the kernel
-    kernel = C(1.0, (1e-3, 1e3)) * RBF(
+    kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(
         1e-3, (1e-5, 1e2)
     )  # + WhiteKernel(noise_level=0.01, noise_level_bounds=(1e-10, 1e+1))
     gp = GaussianProcessRegressor(
