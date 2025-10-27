@@ -62,9 +62,9 @@ def gen_data(A, T, delta, noise):
     time-series data before applying to particle physics datasets.
     """
     data = []
-    for t in np.linspace(0,100,num=100): #ms
-        h = A * np.sin(2*np.pi*t / T) * scipy.stats.norm.pdf(t,loc=50,scale=20) + np.random.normal(scale=noise)
-        l = A * np.sin(2*np.pi*(t+delta) / T)* scipy.stats.norm.pdf(t,loc=50+delta,scale=20) + np.random.normal(scale=noise)
+    for t in np.linspace(0,300,num=300): #ms
+        h = A * np.sin(2*np.pi*t / T) * scipy.stats.norm.pdf(t,loc=150,scale=20) + np.random.normal(scale=noise)
+        l = A * np.sin(2*np.pi*(t+delta) / T)* scipy.stats.norm.pdf(t,loc=150+delta,scale=20) + np.random.normal(scale=noise)
         data.append( [ t,h,l, h+l, h-l])
 
     return np.array(data)

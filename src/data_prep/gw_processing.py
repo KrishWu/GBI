@@ -113,3 +113,48 @@ def gw_background_split(gw_bkg_data, resample_seed=42):
     print(f"GW Background split: Inner={len(inner_bkg)}, Outer={len(outer_bkg)}")
     
     return inner_bkg, outer_bkg
+
+def gw_signal_split(gw_bkg_data, resample_seed=42):
+    """Split GW background data into signal and control regions.
+    
+    This function adapts the signal region / control region splitting concept
+    from particle physics to gravitational wave analysis, using strain amplitude
+    thresholds to define regions for R-Anode background model training.
+    
+    Parameters
+    ----------
+    gw_bkg_data : array-like, shape (n_events, 6)
+        GW background events to split
+    resample_seed : int, default=42
+        Random seed for reproducible shuffling
+        
+    Returns
+    -------
+    tuple
+        (SR_bkg, CR_bkg) where:
+        - SR_bkg: Background events in signal region (higher amplitudes)
+        - CR_bkg: Background events in control region (lower amplitudes)
+        
+    Notes
+    -----
+    The control region events are used to train the background model
+    p_bg(x|m) in the R-Anode framework, adapted for GW strain features.
+    The signal region split mimics the mass window selection used in
+    particle physics searches.
+    """
+    gw_bkg_data = shuffle(gw_bkg_data, random_state=resample_seed)
+    
+    # # Split based on peak amplitude (first feature)
+    # time_min = np.percentile(gw_bkg_data[:, 0], 20)  # Bottom 20% goes to outer_mas
+    # time_max = np.percentile(gw_bkg_data[:, 0], 80)  # Top 20% goes to outer_mask
+    
+    # inner_mask = (time_min < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < time_max)
+    inner_mask = (config.SR_MIN < gw_bkg_data[:, 0]) & (gw_bkg_data[:, 0] < config.SR_MAX)
+    outer_mask = ~inner_mask
+    
+    inner_bkg = gw_bkg_data[inner_mask]
+    outer_bkg = gw_bkg_data[outer_mask]
+    
+    print(f"GW Background split: Inner={len(inner_bkg)}, Outer={len(outer_bkg)}")
+    
+    return inner_bkg, outer_bkg
