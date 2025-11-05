@@ -109,7 +109,8 @@ def flows_model_RQS(
 
     model_S = flows.Flow(
         transform=rec_flow_transform, distribution=rec_flow_base_distribution
-    ).to(device)
+    )
+    model_S = model_S.to(device=device, dtype=torch.float32)
 
     return model_S
 
