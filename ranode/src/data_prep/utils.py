@@ -170,6 +170,7 @@ def inverse_logit_transform(x, min_vals, max_vals):
     -----
     Applies: sigmoid(x) * (max - min) + min
     """
+    # x = np.clip(x, -60, 60) Not needed, but here is clipping if I wanted its
     x_norm = 1 / (1 + np.exp(-x))
     return x_norm * (max_vals - min_vals) + min_vals
 
