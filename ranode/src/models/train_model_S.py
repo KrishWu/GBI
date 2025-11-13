@@ -175,7 +175,7 @@ def train_model_S(
     # define model
     from src.models.model_S import r_anode_mass_joint_untransformed, flows_model_RQS
 
-    model_S = flows_model_RQS(device=device, num_features=5, context_features=None)
+    model_S = flows_model_RQS(device=device, num_features=4, context_features=1)
     # print num of params
     print("model S num of params: ", sum(p.numel() for p in model_S.parameters()))
     optimizer = torch.optim.AdamW(model_S.parameters(), lr=3e-4)
@@ -295,13 +295,16 @@ def pred_model_S(model_dir, data_train_SR_S, device="cuda"):
     # define model
     from src.models.model_S import flows_model_RQS
 
-    model_S = flows_model_RQS(device=device, num_features=5, context_features=None)
+    model_S = flows_model_RQS(device=device, num_features=4, context_features=1)
 
     model_S.load_state_dict(torch.load(model_dir, weights_only=True))
 
     model_S.eval()
 
-    model_S_log_prob = model_S.log_prob(inputs=testtensor_S[:, :-1])
+    model_S_log_prob = model_S.log_prob(
+        inputs=testtensor_S[:, 1:-1],
+        context=testtensor_S[:, 0:1],
+    )
 
     model_S_log_prob[torch.isnan(model_S_log_prob)] = 0
 
