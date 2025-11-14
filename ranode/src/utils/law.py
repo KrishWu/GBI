@@ -8,6 +8,82 @@ import pandas as pd
 from src.utils.utils import str_encode_value
 
 
+class AmplitudeStrengthMixin:
+    """Mixin class for managing gravitational wave amplitude parameters.
+    
+    This mixin provides amplitude-to-background ratio management for the R-Anode
+    method adapted for gravitational waves. It uses predefined conversion tables 
+    to map indices to specific amplitude ratios, allowing systematic studies 
+    of gravitational wave signal strength dependence.
+    
+    Attributes
+    ----------
+    s_ratio_index : luigi.IntParameter, default=8
+        Index into the predefined amplitude ratio conversion table
+    """
+
+    # Amplitude ratio for gravitational wave signals
+    s_ratio_index = luigi.IntParameter(default=8)
+
+    @property
+    def s_ratio(self):
+        """Convert amplitude ratio index to actual amplitude scaling value.
+        
+        Returns
+        -------
+        float
+            Amplitude scaling factor for gravitational wave signals
+        """
+        # Amplitude scaling factors for different signal strengths
+        s_ratio_conversion = [
+            1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 
+            1e-1, 2e-1, 5e-1, 1.0, 2.0, 5.0, 10.0
+        ]
+        return s_ratio_conversion[self.s_ratio_index]
+
+    def store_parts(self):
+        return super().store_parts() + (f"s_ratio_index_{self.s_ratio_index}",)
+
+
+class WScanMixin:
+    """Mixin class for scanning over gravitational wave amplitude values.
+    
+    This mixin provides amplitude scanning functionality for systematic studies
+    of R-Anode sensitivity to different gravitational wave signal amplitudes.
+    
+    Attributes
+    ----------
+    w_min : luigi.FloatParameter, default=1e-4
+        Minimum amplitude value for scanning
+    w_max : luigi.FloatParameter, default=10.0
+        Maximum amplitude value for scanning  
+    scan_number : luigi.IntParameter, default=16
+        Number of amplitude points to scan
+    """
+
+    w_min = luigi.FloatParameter(default=1e-4)
+    w_max = luigi.FloatParameter(default=10.0)
+    scan_number = luigi.IntParameter(default=16)
+
+    @property
+    def w_range(self):
+        """Generate logarithmic range of amplitude values for scanning.
+        
+        Returns
+        -------
+        numpy.ndarray
+            Array of amplitude values for systematic scanning
+        """
+        return np.logspace(np.log10(self.w_min), np.log10(self.w_max), self.scan_number)
+
+    def store_parts(self):
+        return super().store_parts() + (
+            f"w_min_{str_encode_value(self.w_min)}",
+            f"w_max_{str_encode_value(self.w_max)}",
+            f"scan_number_{self.scan_number}",
+        )
+
+
 class BaseTask(law.Task):
     """Base task class providing common functionality for R-Anode workflow tasks.
     
@@ -96,31 +172,21 @@ class BaseTask(law.Task):
 
 
 class ProcessMixin:
-    """Mixin class for tasks involving signal mass point processing.
+    """Mixin class for tasks involving signal processing.
     
-    This mixin provides parameters for defining the mass points of the
-    signal hypothesis in the R-Anode analysis. It handles the two-dimensional
-    mass parameter space (mx, my) used in W' → X(qq)Y(qq) signal models.
+    This mixin provides parameters for the R-Anode analysis using
+    gravitational wave signals with fixed characteristics.
     
     Attributes
     ----------
-    mx : luigi.IntParameter, default=100
-        Mass of the X particle in GeV
-    my : luigi.IntParameter, default=500  
-        Mass of the Y particle in GeV
     ensemble : luigi.IntParameter, default=1
         Ensemble index for statistical uncertainty estimation
     """
-
-    mx = luigi.IntParameter(default=100)
-    my = luigi.IntParameter(default=500)
 
     ensemble = luigi.IntParameter(default=1)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"mx_{self.mx}",
-            f"my_{self.my}",
             f"ensemble_{self.ensemble}",
         )
 

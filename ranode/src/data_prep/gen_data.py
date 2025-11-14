@@ -3,8 +3,13 @@ import scipy.stats
 import matplotlib.pyplot as plt
 
 
-def gen_sig():
+def gen_sig(amplitude=100.0):
     """Generate toy signal data mimicking gravitational wave detection.
+    
+    Parameters
+    ----------
+    amplitude : float, default=100.0
+        Signal amplitude scaling factor
     
     Returns
     -------
@@ -13,7 +18,7 @@ def gen_sig():
     """
     T = 20.0 # ms
     delta = 5. # ms
-    A = 100.0
+    A = amplitude
     return gen_data(A,T,delta,0)
 
 def gen_bg():

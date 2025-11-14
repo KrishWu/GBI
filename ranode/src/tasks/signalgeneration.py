@@ -12,7 +12,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
@@ -35,36 +35,22 @@ from src.tasks.rnodetemplate import (
 class ProcessAllSignals(BaseTask):
     """Task for processing signal events for R-Anode analysis.
     
-    This task handles the processing of signal events from the parametric
-    dataset into the standardized format used by R-Anode. It extracts
-    events for specific mass points (mx, my) and prepares them for use
-    in the analysis pipeline.
+    This task handles the processing of gravitational wave signal events 
+    into the standardized format used by R-Anode. It processes signals
+    using fixed gravitational wave parameters for use in the analysis pipeline.
     
     The processed signals are used for signal injection studies and
-    performance evaluation of the R-Anode methodology across different
-    signal hypotheses.
-    
-    Attributes
-    ----------
-    mx : luigi.IntParameter, default=100
-        Mass of X particle in GeV
-    my : luigi.IntParameter, default=500
-        Mass of Y particle in GeV
+    performance evaluation of the R-Anode methodology for gravitational
+    wave anomaly detection.
         
     Notes
     -----
-    Processes signals from the extended parametric dataset for the
-    specified mass point configuration. Essential for creating the
-    signal samples used in R-Anode sensitivity studies.
+    Processes gravitational wave signals using fixed signal characteristics.
+    Essential for creating the signal samples used in R-Anode sensitivity studies.
     """
-
-    mx = luigi.IntParameter(default=100)
-    my = luigi.IntParameter(default=500)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"mx_{self.mx}",
-            f"my_{self.my}",
         )
 
     def output(self):
@@ -74,15 +60,14 @@ class ProcessAllSignals(BaseTask):
 
     @law.decorator.safe_output
     def run(self):
-        data_dir = os.environ.get("DATA_DIR")
-
-        data_path = f"{data_dir}/events_anomalydetection_extended_Z_XY_qq_parametric.h5"
-
-        from src.data_prep.signal_processing import process_raw_signals
+        from src.data_prep.gw_processing import process_gw_signals
 
         self.output()["signals"].parent.touch()
         output_path = self.output()["signals"].path
-        process_raw_signals(data_path, output_path, self.mx, self.my)
+        
+        # Generate gravitational wave signals and save
+        signals = process_gw_signals(amplitude=100.0)  # Use default amplitude
+        np.save(output_path, signals)
 
 
 class SignalGeneration(
@@ -91,7 +76,7 @@ class SignalGeneration(
     FoldSplitUncertaintyMixin,
     BkgModelMixin,
     WScanMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     BaseTask,
 ):
 
@@ -99,16 +84,11 @@ class SignalGeneration(
     device = luigi.Parameter(default="cuda:0")
     num_generated_sigs = luigi.IntParameter(default=1000000)
 
-    mx = luigi.IntParameter(default=100)
-    my = luigi.IntParameter(default=500)
-
     num_ensembles = luigi.IntParameter(default=5)
 
     def store_parts(self):
         w_test_value = self.w_range[self.w_test_index]
         return super().store_parts() + (
-            f"mx_{self.mx}",
-            f"my_{self.my}",
             f"num_ensembles_{self.num_ensembles}",
             f"w_test_index_{self.w_test_index}_value_{str_encode_value(w_test_value)}",
         )
@@ -214,14 +194,10 @@ class SignalGenerationPlot(
 
     num_generated_sigs = luigi.IntParameter(default=1000000)
 
-    mx = luigi.IntParameter(default=100)
-    my = luigi.IntParameter(default=500)
     num_ensembles = luigi.IntParameter(default=10)
 
     def store_parts(self):
         return super().store_parts() + (
-            f"mx_{self.mx}",
-            f"my_{self.my}",
             f"num_ensembles_{self.num_ensembles}",
         )
 
@@ -249,7 +225,7 @@ class SignalGenerationPlot(
 
     @law.decorator.safe_output
     def run(self):
-        feature_list = ["mjj", "mjmin", "mjmax - mjmin", "tau21min", "tau21max"]
+        feature_list = ["time", "h_strain", "l_strain", "h_l_sum", "h_l_diff"]
 
         conversion = {
             0: 0.0,
@@ -420,13 +396,11 @@ class SignalGenerationPlot(
         }
 
         metadata = {
-            "mx": self.mx,
-            "my": self.my,
             "numB": len(bkg_df),
             "use_full_stats": self.use_full_stats,
             "use_perfect_modelB": self.use_perfect_bkg_model,
             "use_modelB_genData": self.use_bkg_model_gen_data,
-            "columns": [r"$m_{J}$"],
+            "columns": [r"$t_{detector}$"],
         }
 
         self.output()["generated_m1m2"].parent.touch()

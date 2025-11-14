@@ -13,7 +13,7 @@ import torch
 
 from src.utils.law import (
     BaseTask,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     TemplateRandomMixin,
     BkgTemplateUncertaintyMixin,
     BkgModelMixin,
@@ -45,10 +45,10 @@ class SampleModelBinSR(
     def run(self):
         # load SR real bkgs
         SR_bkg_data = np.load(self.input()["bkg_data"]["SR_bkg"].path)
-        # load mass in the first column
-        mass_bkg_data = SR_bkg_data[:, 0]
-        mass_bkg_data = (
-            torch.from_numpy(mass_bkg_data)
+        # load time in the first column
+        time_bkg_data = SR_bkg_data[:, 0]
+        time_bkg_data = (
+            torch.from_numpy(time_bkg_data)
             .reshape((-1, 1))
             .type(torch.FloatTensor)
             .to(self.device)
@@ -73,14 +73,14 @@ class SampleModelBinSR(
         with torch.no_grad():
             sampled_SR_events = model_B.model.sample(
                 num_samples=SR_bkg_data.shape[0],
-                cond_inputs=mass_bkg_data,
+                cond_inputs=time_bkg_data,
             )
 
         sampled_SR_events = sampled_SR_events.cpu().numpy()
 
-        # add mass column
+        # add time column
         sampled_SR_events = np.concatenate(
-            (mass_bkg_data.cpu().numpy(), sampled_SR_events), axis=1
+            (time_bkg_data.cpu().numpy(), sampled_SR_events), axis=1
         )
         # add last column of 0 for bkg
         sampled_SR_events = np.concatenate(
@@ -95,7 +95,7 @@ class SampleModelBinSR(
 class PreprocessingFoldwModelBGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
+    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -124,8 +124,48 @@ class PreprocessingFoldwModelBGen(
                 "data_SR_data_trainval_model_B.npy"
             ),
             "SR_data_test_model_B": self.local_target("data_SR_data_test_model_B.npy"),
-            "SR_mass_hist": self.local_target("SR_mass_hist.json"),
+            "SR_time_hist": self.local_target("SR_time_hist.json"),
         }
+
+    def _combine_gw_data_by_time(self, signal_data, background_data, amplitude_scale):
+        """Combine gravitational wave signal and background data by matching timestamps.
+        
+        Instead of concatenating events, this method combines strain measurements
+        at corresponding time points, scaling the signal by the amplitude factor.
+        
+        Parameters
+        ----------
+        signal_data : numpy.ndarray, shape (n_events, n_features)
+            Signal data with columns [time, H_strain, L_strain, H+L, H-L, label]
+        background_data : numpy.ndarray, shape (n_events, n_features)  
+            Background data with same structure as signal_data
+        amplitude_scale : float
+            Amplitude scaling factor to apply to signal strains
+            
+        Returns
+        -------
+        numpy.ndarray, shape (n_events, n_features)
+            Combined data with signal strains added to background at matching times
+        """
+        # Extract time columns
+        signal_times = signal_data[:, 0]
+        background_times = background_data[:, 0]
+        
+        # Find overlapping time points (should be identical for GW data)
+        combined_data = background_data.copy()
+        
+        # For each background time point, find matching signal time point
+        for i, bg_time in enumerate(background_times):
+            # Find closest signal time (should be exact match for synthetic data)
+            time_diffs = np.abs(signal_times - bg_time)
+            closest_signal_idx = np.argmin(time_diffs)
+            
+            if time_diffs[closest_signal_idx] < 1e-6:  # Close enough to be same time
+                # Add scaled signal strains to background strains (columns 1-4: H, L, H+L, H-L)
+                combined_data[i, 1:5] += amplitude_scale * signal_data[closest_signal_idx, 1:5]
+                # Keep background label (should be 0 for background)
+        
+        return combined_data
 
     @law.decorator.safe_output
     def run(self):
@@ -148,20 +188,20 @@ class PreprocessingFoldwModelBGen(
         for key in pre_parameters.keys():
             pre_parameters[key] = np.array(pre_parameters[key])
 
-        # ----------------------- mass hist in SR -----------------------
+        # ----------------------- time hist in SR -----------------------
         from config.configs import SR_MIN, SR_MAX
 
-        mass = SR_bkg[SR_bkg[:, -1] == 0, 0]
+        time = SR_bkg[SR_bkg[:, -1] == 0, 0]
         bins = np.linspace(SR_MIN, SR_MAX, 50)
-        hist_back = np.histogram(mass, bins=bins, density=True)
-        # save mass histogram and bins
-        self.output()["SR_mass_hist"].parent.touch()
-        with open(self.output()["SR_mass_hist"].path, "w") as f:
+        hist_back = np.histogram(time, bins=bins, density=True)
+        # save time histogram and bins
+        self.output()["SR_time_hist"].parent.touch()
+        with open(self.output()["SR_time_hist"].path, "w") as f:
             json.dump({"hist": hist_back[0], "bins": hist_back[1]}, f, cls=NumpyEncoder)
 
         # ----------------------- make SR data -----------------------
 
-        # concatenate signal and bkg
+        # combine signal and background at matching timestamps
         if self.s_ratio != 0:
             # process signals only since bkgs have already been processed
             _, mask = logit_transform(
@@ -170,7 +210,8 @@ class PreprocessingFoldwModelBGen(
             SR_signal = SR_signal[mask]
             SR_signal = preprocess_params_transform(SR_signal, pre_parameters)
 
-            SR_data = np.concatenate([SR_signal, SR_bkg], axis=0)
+            # Time-based combination: merge strain values at matching timestamps
+            SR_data = self._combine_gw_data_by_time(SR_signal, SR_bkg, self.s_ratio)
         else:
             SR_data = SR_bkg
 
