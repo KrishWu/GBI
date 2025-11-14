@@ -13,7 +13,6 @@ import torch
 
 from src.utils.law import (
     BaseTask,
-    AmplitudeStrengthMixin,
     TemplateRandomMixin,
     BkgTemplateUncertaintyMixin,
     BkgModelMixin,
@@ -95,7 +94,6 @@ class SampleModelBinSR(
 class PreprocessingFoldwModelBGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    AmplitudeStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):
@@ -277,7 +275,6 @@ class PreprocessingFoldwModelBGen(
 class PredictBkgProbGen(
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
-    SignalStrengthMixin,
     ProcessMixin,
     BaseTask,
 ):

@@ -7,44 +7,6 @@ import pandas as pd
 
 from src.utils.utils import str_encode_value
 
-
-class AmplitudeStrengthMixin:
-    """Mixin class for managing gravitational wave amplitude parameters.
-    
-    This mixin provides amplitude-to-background ratio management for the R-Anode
-    method adapted for gravitational waves. It uses predefined conversion tables 
-    to map indices to specific amplitude ratios, allowing systematic studies 
-    of gravitational wave signal strength dependence.
-    
-    Attributes
-    ----------
-    s_ratio_index : luigi.IntParameter, default=8
-        Index into the predefined amplitude ratio conversion table
-    """
-
-    # Amplitude ratio for gravitational wave signals
-    s_ratio_index = luigi.IntParameter(default=8)
-
-    @property
-    def s_ratio(self):
-        """Convert amplitude ratio index to actual amplitude scaling value.
-        
-        Returns
-        -------
-        float
-            Amplitude scaling factor for gravitational wave signals
-        """
-        # Amplitude scaling factors for different signal strengths
-        s_ratio_conversion = [
-            1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 
-            1e-1, 2e-1, 5e-1, 1.0, 2.0, 5.0, 10.0
-        ]
-        return s_ratio_conversion[self.s_ratio_index]
-
-    def store_parts(self):
-        return super().store_parts() + (f"s_ratio_index_{self.s_ratio_index}",)
-
-
 class WScanMixin:
     """Mixin class for scanning over gravitational wave amplitude values.
     

@@ -11,14 +11,12 @@ import matplotlib.ticker as mticker
 
 from src.utils.law import (
     BaseTask,
-    AmplitudeStrengthMixin,
     FoldSplitRandomMixin,
     FoldSplitUncertaintyMixin,
     TemplateRandomMixin,
     SigTemplateTrainingUncertaintyMixin,
     ProcessMixin,
     BkgModelMixin,
-    WScanMixin,
 )
 from src.tasks.preprocessing import PreprocessingFold
 from src.tasks.bkgtemplate import PredictBkgProb
@@ -56,9 +54,7 @@ class FittingScanResults(
 
     def output(self):
         return {
-            "scan_plot": self.local_target(
-                f"scan_plot_{str_encode_value(self.s_ratio)}.pdf"
-            ),
+            "scan_plot": self.local_target("scan_plot_all_signals.pdf"),
             "peak_info": self.local_target("peak_info.json"),
         }
 
@@ -68,8 +64,10 @@ class FittingScanResults(
         # load scan results
         prob_S_scan = np.load(self.input()["prob_S_scan"].path)
         prob_B_scan = np.load(self.input()["prob_B_scan"].path)
-        w_scan_range = self.w_range
-        w_true = self.s_ratio
+        
+        # Simplified: use dummy values since we're not scanning
+        w_scan_range = np.array([1.0])  # Single point: all signals used
+        w_true = 1.0  # All signals are used
 
         from src.fitting.fitting import bootstrap_and_fit
 
